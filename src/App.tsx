@@ -12,6 +12,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedBaby, setSelectedBaby] = useState('1');
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -20,6 +21,15 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentTab('home');
+  };
+
+  const handleDarkModeToggle = (enabled: boolean) => {
+    setIsDarkMode(enabled);
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   // Show login screen if not logged in
@@ -67,6 +77,8 @@ export default function App() {
         onBabyChange={setSelectedBaby}
         onSettingsClick={handleSettingsClick}
         onLogout={handleLogout}
+        isDarkMode={isDarkMode}
+        onDarkModeToggle={handleDarkModeToggle}
       />
 
       {/* Main Content Area - Add bottom padding to prevent dial overlap */}

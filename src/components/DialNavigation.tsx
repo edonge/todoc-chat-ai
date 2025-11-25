@@ -196,18 +196,6 @@ export default function DialNavigation({ currentTab, onTabChange }: DialNavigati
             )}
           </motion.button>
 
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute -top-16 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
-            >
-              <span className="text-xs px-3 py-1.5 rounded-full bg-white/90 text-gray-600 shadow-lg">
-                Click to select
-              </span>
-            </motion.div>
-          )}
         </motion.div>
       </div>
     </>

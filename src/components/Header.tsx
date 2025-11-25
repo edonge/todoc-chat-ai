@@ -22,15 +22,17 @@ interface HeaderProps {
   onBabyChange: (value: string) => void;
   onSettingsClick: () => void;
   onLogout?: () => void;
+  isDarkMode: boolean;
+  onDarkModeToggle: (enabled: boolean) => void;
 }
 
-export default function Header({ selectedBaby, onBabyChange, onSettingsClick, onLogout }: HeaderProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+export default function Header({ selectedBaby, onBabyChange, onSettingsClick, onLogout, isDarkMode, onDarkModeToggle }: HeaderProps) {
   const [language, setLanguage] = useState('ko');
 
   const handleDarkModeToggle = () => {
-    setIsDarkMode(!isDarkMode);
-    toast.info(isDarkMode ? 'Switched to Light Mode' : 'Switched to Dark Mode');
+    const newMode = !isDarkMode;
+    onDarkModeToggle(newMode);
+    toast.info(newMode ? 'Switched to Dark Mode' : 'Switched to Light Mode');
   };
 
   const handleLanguageToggle = () => {
@@ -55,22 +57,22 @@ export default function Header({ selectedBaby, onBabyChange, onSettingsClick, on
     }
   };
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-16 px-4 flex items-center justify-between bg-[#FFFDF9] border-b border-[#6AA6FF]/20">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 px-4 flex items-center justify-between bg-[#FFFDF9] dark:bg-gray-900 border-b border-[#6AA6FF]/20 dark:border-gray-700">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6AA6FF] to-[#9ADBC6] flex items-center justify-center">
           <span className="text-white">📖</span>
         </div>
-        <h1 className="text-[#6AA6FF]">ToDoc 2.0</h1>
+        <h1 className="text-[#6AA6FF] dark:text-[#9ADBC6]">ToDoc 2.0</h1>
       </div>
 
       <Select value={selectedBaby} onValueChange={onBabyChange}>
-        <SelectTrigger className="w-[140px] border-[#6AA6FF]/30 bg-white">
+        <SelectTrigger className="w-[140px] border-[#6AA6FF]/30 dark:border-[#9ADBC6]/30 bg-white dark:bg-gray-800 dark:text-white">
           <SelectValue placeholder="Select Baby" />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1">My Baby</SelectItem>
-          <SelectItem value="2">First Child</SelectItem>
-          <SelectItem value="3">Second Child</SelectItem>
+        <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+          <SelectItem value="1">First Child</SelectItem>
+          <SelectItem value="2">Second Child</SelectItem>
+          <SelectItem value="3">Third Child</SelectItem>
         </SelectContent>
       </Select>
 
@@ -79,12 +81,12 @@ export default function Header({ selectedBaby, onBabyChange, onSettingsClick, on
           <Button
             variant="ghost"
             size="icon"
-            className="text-[#6AA6FF] hover:bg-[#6AA6FF]/10"
+            className="text-[#6AA6FF] dark:text-[#9ADBC6] hover:bg-[#6AA6FF]/10 dark:hover:bg-[#9ADBC6]/20"
           >
             <Settings className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-48 dark:bg-gray-800 dark:border-gray-700">
           <DropdownMenuItem onClick={handleDarkModeToggle}>
             {isDarkMode ? (
               <Sun className="h-4 w-4 mr-2" />

@@ -47,11 +47,11 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
   ];
 
   return (
-    <div className="h-full w-full overflow-auto bg-gradient-to-b from-[#FFFDF9] to-[#FFF8F0] p-4">
+    <div className="h-full w-full overflow-auto bg-gradient-to-b from-[#FFFDF9] to-[#FFF8F0] dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-[#6AA6FF] mb-2">Today's Parenting Diary</h2>
-          <p className="text-sm text-gray-600">{new Date().toLocaleDateString('en-US', { 
+          <h2 className="text-[#6AA6FF] dark:text-[#9ADBC6] mb-2">Today's Parenting Diary</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{new Date().toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric',
@@ -60,7 +60,7 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <Card className="bg-white shadow-xl border-2 border-[#6AA6FF]/20 rounded-2xl overflow-hidden">
+          <Card className="bg-white dark:bg-gray-800 shadow-xl border-2 border-[#6AA6FF]/20 dark:border-[#9ADBC6]/30 rounded-2xl overflow-hidden">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -71,16 +71,16 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
                       onChange={(e) => setBabyName(e.target.value)}
                       onBlur={() => setIsEditingName(false)}
                       onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
-                      className="text-lg font-bold text-[#6AA6FF] border-b-2 border-[#6AA6FF] outline-none px-1 bg-transparent"
+                      className="text-lg font-bold text-[#6AA6FF] dark:text-[#9ADBC6] border-b-2 border-[#6AA6FF] dark:border-[#9ADBC6] outline-none px-1 bg-transparent"
                       autoFocus
                     />
                   ) : (
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                      <span className="text-gray-500">{randomAdjective}</span>
-                      <span className="text-[#6AA6FF]">{babyInfo.name}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{randomAdjective}</span>
+                      <span className="text-[#6AA6FF] dark:text-[#9ADBC6]">{babyInfo.name}</span>
                       <button
                         onClick={() => setIsEditingName(true)}
-                        className="text-gray-400 hover:text-[#6AA6FF] transition-colors"
+                        className="text-gray-400 hover:text-[#6AA6FF] dark:hover:text-[#9ADBC6] transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -128,17 +128,17 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
                           >
                             <Icon className="h-3.5 w-3.5" style={{ color: record.color }} />
                           </div>
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 dark:text-gray-300">
                             {record.type === 'sleep' && `Nap ${record.duration}`}
                             {record.type === 'meal' && `Feed ${record.amount}`}
                             {record.type === 'health' && `Temp ${record.temp}`}
                           </span>
-                          <span className="text-gray-400 ml-auto">{record.time}</span>
+                          <span className="text-gray-400 dark:text-gray-500 ml-auto">{record.time}</span>
                         </div>
                       );
                     })}
                     {recentRecords.length === 0 && (
-                      <p className="text-xs text-gray-400 text-center py-2">
+                      <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
                         Log your first record of the day!
                       </p>
                     )}
@@ -148,15 +148,15 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-xl border-2 border-[#9ADBC6]/20 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-[#9ADBC6]/10 to-[#FFC98B]/10 border-b border-[#9ADBC6]/20">
+          <Card className="bg-white dark:bg-gray-800 shadow-xl border-2 border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-[#9ADBC6]/10 to-[#FFC98B]/10 dark:from-[#9ADBC6]/20 dark:to-[#FFC98B]/20 border-b border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30">
               <CardTitle className="flex items-center justify-between text-[#9ADBC6]">
                 <span>🤖 AI Insights</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={onOpenChat}
-                  className="text-[#9ADBC6] hover:bg-[#9ADBC6]/10 h-8"
+                  className="text-[#9ADBC6] hover:bg-[#9ADBC6]/10 dark:hover:bg-[#9ADBC6]/20 h-8"
                 >
                   <Bot className="h-4 w-4 mr-1" />
                   <span className="text-xs">Chat</span>
@@ -167,22 +167,22 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
               {aiInsights.map((insight, idx) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-lg bg-gradient-to-r from-[#9ADBC6]/5 to-[#FFC98B]/5 border border-[#9ADBC6]/20"
+                  className="p-3 rounded-lg bg-gradient-to-r from-[#9ADBC6]/5 to-[#FFC98B]/5 dark:from-[#9ADBC6]/10 dark:to-[#FFC98B]/10 border border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Badge
                       variant="secondary"
                       className={`text-xs ${
                         insight.type === 'Doctor AI'
-                          ? 'bg-[#6AA6FF]/10 text-[#6AA6FF]'
-                          : 'bg-[#FFC98B]/20 text-[#FFC98B]'
+                          ? 'bg-[#6AA6FF]/10 text-[#6AA6FF] dark:bg-[#6AA6FF]/20'
+                          : 'bg-[#FFC98B]/20 text-[#FFC98B] dark:bg-[#FFC98B]/30'
                       }`}
                     >
                       {insight.type}
                     </Badge>
-                    <span className="text-xs text-gray-400">{insight.time}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{insight.time}</span>
                   </div>
-                  <p className="text-sm text-gray-700">{insight.message}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{insight.message}</p>
                 </div>
               ))}
             </CardContent>
@@ -190,24 +190,24 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-gradient-to-br from-[#6AA6FF]/10 to-[#6AA6FF]/5 border-[#6AA6FF]/30">
+          <Card className="bg-gradient-to-br from-[#6AA6FF]/10 to-[#6AA6FF]/5 dark:from-[#6AA6FF]/20 dark:to-[#6AA6FF]/10 border-[#6AA6FF]/30 dark:bg-gray-800">
             <CardContent className="p-4 text-center">
               <TrendingUp className="h-6 w-6 mx-auto mb-2 text-[#6AA6FF]" />
-              <p className="text-xs text-gray-600">Growth</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Growth</p>
               <p className="text-[#6AA6FF]">Normal</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-[#FFC98B]/10 to-[#FFC98B]/5 border-[#FFC98B]/30">
+          <Card className="bg-gradient-to-br from-[#FFC98B]/10 to-[#FFC98B]/5 dark:from-[#FFC98B]/20 dark:to-[#FFC98B]/10 border-[#FFC98B]/30 dark:bg-gray-800">
             <CardContent className="p-4 text-center">
               <Heart className="h-6 w-6 mx-auto mb-2 text-[#FFC98B]" />
-              <p className="text-xs text-gray-600">Health</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Health</p>
               <p className="text-[#FFC98B]">Good</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-[#9ADBC6]/10 to-[#9ADBC6]/5 border-[#9ADBC6]/30">
+          <Card className="bg-gradient-to-br from-[#9ADBC6]/10 to-[#9ADBC6]/5 dark:from-[#9ADBC6]/20 dark:to-[#9ADBC6]/10 border-[#9ADBC6]/30 dark:bg-gray-800">
             <CardContent className="p-4 text-center">
               <Moon className="h-6 w-6 mx-auto mb-2 text-[#9ADBC6]" />
-              <p className="text-xs text-gray-600">Sleep</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Sleep</p>
               <p className="text-[#9ADBC6]">Good</p>
             </CardContent>
           </Card>
