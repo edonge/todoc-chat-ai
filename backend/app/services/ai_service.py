@@ -1,37 +1,40 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from sqlalchemy.orm import Session, joinedload
-import google.generativeai as genai
+from openai import AsyncOpenAI
 from app.core.config import settings
-from app.models import Kid, Record, MealRecord, SleepRecord, HealthRecord, GrowthRecord
+from app.models import Kid, Record, SleepRecord, HealthRecord, GrowthRecord
 
 
 class AIService:
     def __init__(self):
-        if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-        else:
-            self.model = None
+        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
 
-    def get_system_prompt(self, ai_mode: str, kid_context: Optional[str] = None) -> str:
+    def get_system_prompt(
+        self,
+        ai_mode: str,
+        kid_context: Optional[str] = None,
+        rag_context: Optional[str] = None
+    ) -> str:
         base_prompts = {
-            "doctor": """당신은 소아과 전문의 AI 어시스턴트입니다.
-- 아이의 건강 관련 질문에 전문적이고 친절하게 답변합니다.
-- 증상에 대한 일반적인 정보와 조언을 제공합니다.
-- 심각한 증상이나 응급 상황의 경우 반드시 병원 방문을 권고합니다.
-- 의학적 진단이나 처방은 하지 않으며, 일반적인 건강 정보만 제공합니다.""",
-
-            "mom": """당신은 경험 많은 육아 전문가 AI 어시스턴트입니다.
-- 육아에 관한 다양한 질문에 따뜻하고 공감하는 태도로 답변합니다.
-- 아이의 발달 단계에 맞는 조언을 제공합니다.
-- 부모의 걱정을 이해하고 실질적인 도움을 줍니다.
-- 육아 스트레스 관리에 대한 조언도 제공합니다.""",
-
-            "nutritionist": """당신은 소아 영양 전문가 AI 어시스턴트입니다.
-- 아이의 영양과 식단에 관한 질문에 전문적으로 답변합니다.
-- 연령별 적절한 영양 섭취량과 식단을 제안합니다.
-- 편식, 알레르기, 이유식 등에 대한 조언을 제공합니다.
-- 건강한 식습관 형성을 위한 팁을 제공합니다."""
+            "doctor": (
+                "당신은 소아과 상담 AI입니다.\n"
+                "- 영유아 건강 증상/관리 상담 시 의학적 근거를 바탕으로 구체적이고 신중하게 답변합니다.\n"
+                "- 긴급 증상(호흡곤란, 의식저하, 지속 고열 등)이 의심되면 즉시 가까운 응급실 방문을 권고합니다.\n"
+                "- 검진/치료/약물은 반드시 의료진 판단이 필요하다고 안내합니다.\n"
+                "- 가능한 경우 연령·체중·발달 단계에 맞춘 권장사항과 주의사항을 함께 제공합니다."
+            ),
+            "mom": (
+                "당신은 육아 전반을 돕는 AI입니다.\n"
+                "- 수면, 발달, 생활습관, 위생, 놀이 등 실생활 질문에 대해 신뢰할 수 있는 자료를 바탕으로 답변합니다.\n"
+                "- 연령별 발달 단계와 부모의 현실적 제약을 고려해 실천 가능한 조언을 제시합니다.\n"
+                "- 필요 시 전문가 상담(소아과, 발달센터 등)을 안내합니다."
+            ),
+            "nutritionist": (
+                "당신은 영유아 영양 코치 AI입니다.\n"
+                "- 연령·체중·발달 단계에 맞춘 식단과 조리/보관 위생 가이드를 제공합니다.\n"
+                "- 식품 알레르기, 질식 위험 식품, 위생 관리에 대한 주의사항을 명확히 안내합니다.\n"
+                "- 가능하면 조리법, 대체 식품, 하루 섭취 예시를 함께 제공합니다."
+            ),
         }
 
         system_prompt = base_prompts.get(ai_mode, base_prompts["mom"])
@@ -39,32 +42,47 @@ class AIService:
         if kid_context:
             system_prompt += f"\n\n[아이 정보]\n{kid_context}"
 
-        system_prompt += "\n\n답변은 한국어로 작성하며, 친절하고 이해하기 쉽게 설명해주세요."
+        if rag_context:
+            system_prompt += f"\n\n[참고 근거]\n{rag_context}"
+
+        system_prompt += (
+            "\n\n원칙:\n"
+            "- 모든 답변은 한국어 존댓말로 짧고 명확하게 작성합니다.\n"
+            "- 근거가 부족하거나 위험 요소가 있으면 전문가 방문을 권고합니다.\n"
+            "- 진단이나 처방을 단정하지 말고, 증상 악화 시 즉시 병원 방문을 안내합니다."
+        )
 
         return system_prompt
 
     def build_kid_context(self, kid: Kid, db: Session) -> str:
-        """Build context string from kid's recent records for RAG-like approach"""
+        """Assemble recent kid info for grounding."""
         context_parts = [f"- 이름: {kid.name}"]
         context_parts.append(f"- 생년월일: {kid.birth_date}")
         context_parts.append(f"- 성별: {'남아' if kid.gender == 'male' else '여아'}")
 
-        # Recent growth (join through Record base table)
-        recent_growth = db.query(GrowthRecord).join(Record).filter(
-            Record.kid_id == kid.id
-        ).options(joinedload(GrowthRecord.record)).order_by(Record.created_at.desc()).first()
-
+        recent_growth = (
+            db.query(GrowthRecord)
+            .join(Record)
+            .filter(Record.kid_id == kid.id)
+            .options(joinedload(GrowthRecord.record))
+            .order_by(Record.created_at.desc())
+            .first()
+        )
         if recent_growth:
             if recent_growth.height_cm:
                 context_parts.append(f"- 최근 키: {recent_growth.height_cm}cm")
             if recent_growth.weight_kg:
                 context_parts.append(f"- 최근 체중: {recent_growth.weight_kg}kg")
 
-        # Recent health issues (join through Record base table)
-        recent_health = db.query(HealthRecord).join(Record).filter(
-            Record.kid_id == kid.id
-        ).options(joinedload(HealthRecord.record)).order_by(Record.created_at.desc()).limit(3).all()
-
+        recent_health = (
+            db.query(HealthRecord)
+            .join(Record)
+            .filter(Record.kid_id == kid.id)
+            .options(joinedload(HealthRecord.record))
+            .order_by(Record.created_at.desc())
+            .limit(3)
+            .all()
+        )
         if recent_health:
             symptoms = []
             for health_record in recent_health:
@@ -73,18 +91,22 @@ class AIService:
             if symptoms:
                 context_parts.append(f"- 최근 증상: {', '.join(set(symptoms))}")
 
-        # Recent sleep patterns (join through Record base table)
-        recent_sleep = db.query(SleepRecord).join(Record).filter(
-            Record.kid_id == kid.id
-        ).options(joinedload(SleepRecord.record)).order_by(Record.created_at.desc()).limit(7).all()
-
+        recent_sleep = (
+            db.query(SleepRecord)
+            .join(Record)
+            .filter(Record.kid_id == kid.id)
+            .options(joinedload(SleepRecord.record))
+            .order_by(Record.created_at.desc())
+            .limit(7)
+            .all()
+        )
         if recent_sleep:
             total_hours = 0
             for sleep_record in recent_sleep:
                 duration = (sleep_record.end_datetime - sleep_record.start_datetime).total_seconds() / 3600
                 total_hours += duration
             avg_sleep = total_hours / len(recent_sleep)
-            context_parts.append(f"- 평균 수면시간: {avg_sleep:.1f}시간")
+            context_parts.append(f"- 최근 평균 수면시간: {avg_sleep:.1f}시간")
 
         return "\n".join(context_parts)
 
@@ -94,40 +116,38 @@ class AIService:
         ai_mode: str,
         conversation_history: List[Dict[str, str]],
         kid: Optional[Kid] = None,
-        db: Optional[Session] = None
+        db: Optional[Session] = None,
+        rag_context: Optional[str] = None,
     ) -> str:
-        if not self.model:
-            return "AI 서비스가 설정되지 않았습니다. 관리자에게 문의해주세요."
+        if not self.client:
+            return "AI 서비스가 설정되지 않았습니다. 관리자에게 문의해 주세요."
 
-        # Build kid context if available
         kid_context = None
         if kid and db:
             kid_context = self.build_kid_context(kid, db)
 
-        system_prompt = self.get_system_prompt(ai_mode, kid_context)
+        system_prompt = self.get_system_prompt(ai_mode, kid_context, rag_context)
 
-        # Build conversation for Gemini
-        chat = self.model.start_chat(history=[])
+        messages = [{"role": "system", "content": system_prompt}]
 
-        # Add system prompt as first message
-        messages = [{"role": "user", "parts": [system_prompt]}]
-        messages.append({"role": "model", "parts": ["네, 알겠습니다. 말씀하신 역할에 맞게 도움을 드리겠습니다."]})
-
-        # Add conversation history
         for msg in conversation_history:
-            role = "user" if msg["sender"] == "user" else "model"
-            messages.append({"role": role, "parts": [msg["message"]]})
+            role = "user" if msg["sender"] == "user" else "assistant"
+            messages.append({"role": role, "content": msg["message"]})
 
-        # Add current message
-        messages.append({"role": "user", "parts": [message]})
+        messages.append({"role": "user", "content": message})
 
         try:
-            # Create chat with history
-            chat = self.model.start_chat(history=messages[:-1])
-            response = chat.send_message(message)
-            return response.text
+            response = await self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=messages,
+                temperature=0.2,
+                top_p=0.9,
+                max_tokens=800,
+            )
+            content = response.choices[0].message.content if response.choices else None
+            return content.strip() if content else "응답을 생성하지 못했습니다."
         except Exception as e:
-            return f"죄송합니다. 응답을 생성하는 중 오류가 발생했습니다: {str(e)}"
+            return f"죄송합니다. 응답을 생성하는 과정에서 문제가 발생했습니다: {str(e)}"
 
 
 # Singleton instance
