@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Bot, TrendingUp, Heart, Moon, Utensils, Pencil } from 'lucide-react';
+import { format } from 'date-fns';
+import { enUS, ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +13,7 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentPage, setCurrentPage] = useState(0);
   const [babyName, setBabyName] = useState('Hajun');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -53,12 +55,11 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h2 className="text-[#6AA6FF] dark:text-[#9ADBC6] mb-2">{t('home.title')}</h2>
-          <p className="text-sm text-[#CFCFCF] dark:text-[#CFCFCF]">{new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-          })}</p>
+          <p className="text-sm text-[#CFCFCF] dark:text-[#CFCFCF]">
+            {language === 'ko'
+              ? format(new Date(), 'yyyy년 M월 d일 EEEE', { locale: ko })
+              : format(new Date(), 'EEEE, MMMM d, yyyy', { locale: enUS })}
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">

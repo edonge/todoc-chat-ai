@@ -28,7 +28,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               <span className="text-4xl">📖</span>
             </div>
           </div>
-          <CardTitle className="text-[#6AA6FF]">ToDoc 2.0</CardTitle>
+          <CardTitle className="text-[#6AA6FF]">ToDoc</CardTitle>
           <p className="text-sm text-gray-600">The All-in-One Parenting Platform for Infant Care</p>
         </CardHeader>
 

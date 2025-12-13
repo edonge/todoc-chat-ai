@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Plus, Search, TrendingUp, ArrowLeft, Image as ImageIcon, Tag, MapPin, Send, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Plus, Search, TrendingUp, ArrowLeft, Image as ImageIcon, Tag, MapPin, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -378,7 +378,7 @@ export default function CommunityScreen() {
                   relative py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200
                   ${activeTab === tab
                     ? 'bg-gradient-to-r from-[#6AA6FF] to-[#9ADBC6] text-white shadow-lg'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#6AA6FF] dark:hover:text-[#9ADBC6]'
+                    : 'text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#6AA6FF] dark:hover:text-[#9ADBC6]'
                   }
                 `}
               >
@@ -455,7 +455,7 @@ export default function CommunityScreen() {
                   {post.tags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-[#F3F3F3] dark:text-[#F3F3F3]"
+                      className="text-xs px-2 py-1 rounded-full post-tag"
                     >
                       #{tag}
                     </span>
@@ -534,7 +534,7 @@ export default function CommunityScreen() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="h-4 w-4 text-[#6AA6FF]" />
-              <h3 className="text-sm text-[#6AA6FF]">Trending Tags</h3>
+              <h3 className="text-sm text-[#6AA6FF]">{t('community.trendingTag')}</h3>
             </div>
             <div className="flex gap-2 flex-wrap">
               {['baby food', 'sleep', 'play', 'development', 'baby items', 'health'].map((tag) => (

@@ -6,21 +6,43 @@ import RecordScreen from './screens/Record/RecordScreen';
 import ChatScreen from './screens/Chat/ChatScreen';
 import CommunityScreen from './screens/Community/CommunityScreen';
 import LoginScreen from './screens/Login/LoginScreen';
+import ChildRegistrationScreen from './screens/ChildRegistration/ChildRegistrationScreen';
 import { Toaster } from './components/ui/sonner';
+import { hasChildRegistered } from './services/api/childService';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedBaby, setSelectedBaby] = useState('1');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const handleLogin = () => {
+  // Check if user has completed onboarding when they log in
+  const handleLogin = async () => {
     setIsLoggedIn(true);
+    setIsCheckingOnboarding(true);
+    
+    try {
+      const hasChild = await hasChildRegistered();
+      setHasCompletedOnboarding(hasChild);
+    } catch (error) {
+      console.error('Error checking child registration:', error);
+      // If there's an error, assume onboarding is needed
+      setHasCompletedOnboarding(false);
+    } finally {
+      setIsCheckingOnboarding(false);
+    }
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setHasCompletedOnboarding(null);
     setCurrentTab('home');
+  };
+
+  const handleOnboardingComplete = () => {
+    setHasCompletedOnboarding(true);
   };
 
   const handleDarkModeToggle = (enabled: boolean) => {
@@ -37,6 +59,28 @@ export default function App() {
     return (
       <>
         <LoginScreen onLogin={handleLogin} />
+        <Toaster position="top-center" />
+      </>
+    );
+  }
+
+  // Show loading state while checking onboarding status
+  if (isCheckingOnboarding) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#6AA6FF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show child registration screen if logged in but hasn't completed onboarding
+  if (hasCompletedOnboarding === false) {
+    return (
+      <>
+        <ChildRegistrationScreen onComplete={handleOnboardingComplete} />
         <Toaster position="top-center" />
       </>
     );

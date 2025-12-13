@@ -236,3 +236,123 @@ html {
 .bg-emotion {
   background-color: var(--emotion);
 }
+
+/* Post tag styling for dark mode compatibility */
+.post-tag {
+  background-color: #f3f4f6; /* gray-100 */
+  color: #000000; /* black */
+}
+
+.dark .post-tag {
+  background-color: #3a3a3a; /* dark gray */
+  color: #f5f5f5; /* light text */
+}
+
+/* Health entry title - brighter red in dark mode */
+.health-entry-title {
+  color: var(--destructive) !important;
+}
+
+.dark .health-entry-title {
+  color: #ff4444 !important; /* brighter, more saturated red for dark mode */
+}
+
+/* Chat AI tab buttons - override default TabsTrigger styles with maximum specificity */
+/* Support both inline styles (light mode) and CSS (dark mode) */
+/* Light mode - inline styles handle this, but keep CSS as fallback */
+button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"],
+button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] {
+  background-color: #6AA6FF !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] svg,
+button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] span,
+button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] *,
+button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] svg,
+button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] span,
+button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] * {
+  color: #ffffff !important;
+}
+
+button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"],
+button[data-slot="tabs-trigger"][value="mom"][data-state="active"] {
+  background-color: #FFC98B !important;
+  background-image: none !important;
+  color: #1f2937 !important;
+}
+
+button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] svg,
+button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] span,
+button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] *,
+button[data-slot="tabs-trigger"][value="mom"][data-state="active"] svg,
+button[data-slot="tabs-trigger"][value="mom"][data-state="active"] span,
+button[data-slot="tabs-trigger"][value="mom"][data-state="active"] * {
+  color: #1f2937 !important;
+}
+
+button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"],
+button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] {
+  background-color: #9ADBC6 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] svg,
+button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] span,
+button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] *,
+button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] svg,
+button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] span,
+button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] * {
+  color: #ffffff !important;
+}
+
+/* Dark mode styles - override inline styles */
+.dark button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"],
+.dark button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] {
+  background: linear-gradient(to right, #6AA6FF, #5a96ef) !important;
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+.dark button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] span,
+.dark button[data-slot="tabs-trigger"].doctor-ai-tab[data-state="active"] *,
+.dark button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] span,
+.dark button[data-slot="tabs-trigger"][value="doctor"][data-state="active"] * {
+  color: #ffffff !important;
+}
+
+.dark button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"],
+.dark button[data-slot="tabs-trigger"][value="mom"][data-state="active"] {
+  background: linear-gradient(to right, #FFC98B, #ffb86b) !important;
+  background-color: transparent !important;
+  color: #1f2937 !important;
+}
+
+.dark button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] span,
+.dark button[data-slot="tabs-trigger"].mom-ai-tab[data-state="active"] *,
+.dark button[data-slot="tabs-trigger"][value="mom"][data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"][value="mom"][data-state="active"] span,
+.dark button[data-slot="tabs-trigger"][value="mom"][data-state="active"] * {
+  color: #1f2937 !important;
+}
+
+.dark button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"],
+.dark button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] {
+  background: linear-gradient(to right, #9ADBC6, #7ac7b0) !important;
+  background-color: transparent !important;
+  color: #1f2937 !important;
+}
+
+.dark button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] span,
+.dark button[data-slot="tabs-trigger"].nutrition-ai-tab[data-state="active"] *,
+.dark button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] svg,
+.dark button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] span,
+.dark button[data-slot="tabs-trigger"][value="nutritionist"][data-state="active"] * {
+  color: #1f2937 !important;
+}

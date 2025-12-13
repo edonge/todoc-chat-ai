@@ -3,6 +3,10 @@ export const translations = {
     // Header
     'header.settings': '설정',
     'header.logout': '로그아웃',
+    'header.selectBaby': '아기 선택',
+    'header.firstChild': '첫째',
+    'header.secondChild': '둘째',
+    'header.thirdChild': '셋째',
 
     // Navigation
     'nav.home': '홈',
@@ -50,6 +54,8 @@ export const translations = {
     'category.health': '건강',
     'category.development': '발달',
     'category.emotion': '감정',
+    'category.diaper': '대소변',
+    'category.other': '메모',
 
     // Record Form
     'form.new': '새',
@@ -63,11 +69,16 @@ export const translations = {
     'form.saveEntry': '기록 저장',
     'form.fillRequired': '제목과 날짜를 입력해주세요.',
     'form.saved': '기록이 저장되었습니다.',
+    'form.didBurp': '아기가 트림했나요?',
+    'form.selectStartTime': '시작 시간을 선택해주세요.',
 
     // Growth Form
     'growth.height': '키 (cm)',
     'growth.weight': '몸무게 (kg)',
     'growth.headCircumference': '머리둘레 (cm)',
+    'growth.heightLabel': '키',
+    'growth.weightLabel': '몸무게',
+    'growth.headLabel': '머리둘레',
 
     // Sleep Form
     'sleep.startTime': '시작 시간',
@@ -76,12 +87,18 @@ export const translations = {
     'sleep.good': '좋음',
     'sleep.fair': '보통',
     'sleep.poor': '나쁨',
+    'sleep.startLabel': '시작',
+    'sleep.endLabel': '종료',
+    'sleep.qualityLabel': '수면 질',
 
     // Meal Form
     'meal.foodType': '음식 종류',
     'meal.foodPlaceholder': '예: 모유, 분유, 죽',
     'meal.amount': '양',
     'meal.amountPlaceholder': '예: 120ml, 1그릇',
+    'meal.foodLabel': '음식',
+    'meal.amountLabel': '양',
+    'meal.burpComplete': '✅ 트림 완료',
 
     // Health Form
     'health.temperature': '체온 (°C)',
@@ -92,6 +109,28 @@ export const translations = {
     'health.rash': '발진',
     'health.vomiting': '구토',
     'health.diarrhea': '설사',
+    'health.other': '기타',
+    'health.otherPlaceholder': '기타 증상을 입력하세요...',
+    'health.tempLabel': '체온',
+    'health.symptomsLabel': '증상',
+
+    // Diaper Form
+    'diaper.amount': '양',
+    'diaper.condition': '상태',
+    'diaper.color': '색상',
+    'diaper.amountLabel': '양',
+    'diaper.conditionLabel': '상태',
+    'diaper.colorLabel': '색상',
+    'diaper.low': '적음',
+    'diaper.medium': '보통',
+    'diaper.high': '많음',
+    'diaper.normal': '정상',
+    'diaper.diarrhea': '설사',
+    'diaper.constipation': '변비',
+    'diaper.yellow': '노란색',
+    'diaper.brown': '갈색',
+    'diaper.green': '녹색',
+    'diaper.other': '기타',
 
     // Development Form
     'development.milestone': '이정표',
@@ -140,6 +179,7 @@ export const translations = {
     'community.postPublished': '게시글이 게시되었습니다!',
     'community.noComments': '아직 댓글이 없습니다. 첫 댓글을 남겨주세요!',
     'community.writeComment': '댓글 작성...',
+    'community.trendingTag': '인기 태그',
 
     // Login Screen
     'login.title': 'Todoc에 오신 것을 환영합니다',
@@ -153,6 +193,28 @@ export const translations = {
     'login.signUp': '가입하기',
     'login.success': '로그인 성공!',
 
+    // Child Registration Screen
+    'childRegistration.title': '아이 정보 등록',
+    'childRegistration.subtitle': '아이의 기본 정보를 입력해주세요',
+    'childRegistration.nameLabel': '아이 이름',
+    'childRegistration.namePlaceholder': '이름을 입력하세요',
+    'childRegistration.dateLabel': '생년월일',
+    'childRegistration.datePlaceholder': 'YYYY-MM-DD 형식으로 입력하세요 (예: 2024-05-15)',
+    'childRegistration.dateFormatError': '날짜는 YYYY-MM-DD 형식으로 입력해주세요. (예: 2024-05-15)',
+    'childRegistration.dateInvalidError': '유효하지 않은 날짜입니다.',
+    'childRegistration.dateFormatExample': '형식: YYYY-MM-DD (예: 2024-05-15)',
+    'childRegistration.genderLabel': '성별',
+    'childRegistration.genderPlaceholder': '성별을 선택하세요',
+    'childRegistration.genderBoy': '남아',
+    'childRegistration.genderGirl': '여아',
+    'childRegistration.submitButton': '등록하기',
+    'childRegistration.submitting': '등록 중...',
+    'childRegistration.nameRequired': '아이 이름을 입력해주세요.',
+    'childRegistration.dateRequired': '생년월일을 선택해주세요.',
+    'childRegistration.genderRequired': '성별을 선택해주세요.',
+    'childRegistration.dateFutureError': '생년월일은 오늘 이후일 수 없습니다.',
+    'childRegistration.submitError': '등록 중 오류가 발생했습니다. 다시 시도해주세요.',
+
     // AI Assistant
     'ai.title': 'AI 어시스턴트',
     'ai.comingSoon': 'AI 어시스턴트 기능이 곧 제공됩니다.',
@@ -161,6 +223,10 @@ export const translations = {
     // Header
     'header.settings': 'Settings',
     'header.logout': 'Logout',
+    'header.selectBaby': 'Select Baby',
+    'header.firstChild': 'First Child',
+    'header.secondChild': 'Second Child',
+    'header.thirdChild': 'Third Child',
 
     // Navigation
     'nav.home': 'Home',
@@ -208,6 +274,8 @@ export const translations = {
     'category.health': 'Health',
     'category.development': 'Development',
     'category.emotion': 'Emotion',
+    'category.diaper': 'Diaper',
+    'category.other': 'Other',
 
     // Record Form
     'form.new': 'New',
@@ -221,11 +289,16 @@ export const translations = {
     'form.saveEntry': 'Save Entry',
     'form.fillRequired': 'Please fill in the title and date.',
     'form.saved': 'entry has been saved.',
+    'form.didBurp': 'Did the baby burp?',
+    'form.selectStartTime': 'Please select a start time.',
 
     // Growth Form
     'growth.height': 'Height (cm)',
     'growth.weight': 'Weight (kg)',
     'growth.headCircumference': 'Head Circumference (cm)',
+    'growth.heightLabel': 'Height',
+    'growth.weightLabel': 'Weight',
+    'growth.headLabel': 'Head',
 
     // Sleep Form
     'sleep.startTime': 'Start Time',
@@ -234,12 +307,18 @@ export const translations = {
     'sleep.good': 'Good',
     'sleep.fair': 'Fair',
     'sleep.poor': 'Poor',
+    'sleep.startLabel': 'Start',
+    'sleep.endLabel': 'End',
+    'sleep.qualityLabel': 'Quality',
 
     // Meal Form
     'meal.foodType': 'Food Type',
     'meal.foodPlaceholder': 'e.g., Breast milk, Formula, Porridge',
     'meal.amount': 'Amount',
     'meal.amountPlaceholder': 'e.g., 120ml, 1 bowl',
+    'meal.foodLabel': 'Food',
+    'meal.amountLabel': 'Amount',
+    'meal.burpComplete': '✅ Burp Complete',
 
     // Health Form
     'health.temperature': 'Temperature (°C)',
@@ -250,6 +329,28 @@ export const translations = {
     'health.rash': 'Rash',
     'health.vomiting': 'Vomiting',
     'health.diarrhea': 'Diarrhea',
+    'health.other': 'Other',
+    'health.otherPlaceholder': 'Enter other symptoms...',
+    'health.tempLabel': 'Temp',
+    'health.symptomsLabel': 'Symptoms',
+
+    // Diaper Form
+    'diaper.amount': 'Amount',
+    'diaper.condition': 'Condition',
+    'diaper.color': 'Color',
+    'diaper.amountLabel': 'Amount',
+    'diaper.conditionLabel': 'Condition',
+    'diaper.colorLabel': 'Color',
+    'diaper.low': 'Low',
+    'diaper.medium': 'Medium',
+    'diaper.high': 'High',
+    'diaper.normal': 'Normal',
+    'diaper.diarrhea': 'Diarrhea',
+    'diaper.constipation': 'Constipation',
+    'diaper.yellow': 'Yellow',
+    'diaper.brown': 'Brown',
+    'diaper.green': 'Green',
+    'diaper.other': 'Other',
 
     // Development Form
     'development.milestone': 'Milestone',
@@ -298,6 +399,7 @@ export const translations = {
     'community.postPublished': 'Post published!',
     'community.noComments': 'No comments yet. Be the first to share!',
     'community.writeComment': 'Write a comment...',
+    'community.trendingTag': 'Trending Tags',
 
     // Login Screen
     'login.title': 'Welcome to Todoc',
@@ -310,6 +412,28 @@ export const translations = {
     'login.noAccount': "Don't have an account?",
     'login.signUp': 'Sign Up',
     'login.success': 'Login successful!',
+
+    // Child Registration Screen
+    'childRegistration.title': 'Register Your Child',
+    'childRegistration.subtitle': 'Please enter your child\'s basic information',
+    'childRegistration.nameLabel': 'Child\'s Name',
+    'childRegistration.namePlaceholder': 'Enter child\'s name',
+    'childRegistration.dateLabel': 'Date of Birth',
+    'childRegistration.datePlaceholder': 'Enter in YYYY-MM-DD format (e.g., 2024-05-15)',
+    'childRegistration.dateFormatError': 'Please enter the date in YYYY-MM-DD format. (e.g., 2024-05-15)',
+    'childRegistration.dateInvalidError': 'Invalid date.',
+    'childRegistration.dateFormatExample': 'Format: YYYY-MM-DD (e.g., 2024-05-15)',
+    'childRegistration.genderLabel': 'Gender',
+    'childRegistration.genderPlaceholder': 'Select gender',
+    'childRegistration.genderBoy': 'Boy',
+    'childRegistration.genderGirl': 'Girl',
+    'childRegistration.submitButton': 'Register',
+    'childRegistration.submitting': 'Registering...',
+    'childRegistration.nameRequired': 'Please enter your child\'s name.',
+    'childRegistration.dateRequired': 'Please select the date of birth.',
+    'childRegistration.genderRequired': 'Please select gender.',
+    'childRegistration.dateFutureError': 'Date of birth cannot be in the future.',
+    'childRegistration.submitError': 'An error occurred during registration. Please try again.',
 
     // AI Assistant
     'ai.title': 'AI Assistant',

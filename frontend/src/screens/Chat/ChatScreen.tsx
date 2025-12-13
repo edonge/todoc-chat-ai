@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, JSX } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, Plus, ChevronDown, Utensils, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,32 @@ import {
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Hook to detect dark mode
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(() => 
+    document.documentElement.classList.contains('dark')
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return isDark;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'ai' | 'system';
-  content: string | React.ReactNode;
+  content: string;
   timestamp: Date;
 }
 
@@ -32,6 +54,7 @@ interface ChatSession {
 
 export default function ChatScreen() {
   const { t } = useLanguage();
+  const isDark = useDarkMode();
   const [activeAgent, setActiveAgent] = useState<'doctor' | 'mom' | 'nutritionist'>('doctor');
   const [currentSessionId, setCurrentSessionId] = useState('1');
   const [sessions, setSessions] = useState<ChatSession[]>([
@@ -114,7 +137,6 @@ export default function ChatScreen() {
         timestamp: new Date(),
       };
 
-      // Replace thinking message with actual response
       setSessions((prevSessions) =>
         prevSessions.map((session) => {
           if (session.id === currentSessionId) {
@@ -128,7 +150,7 @@ export default function ChatScreen() {
             return {
               ...session,
               [messageKey]: messages,
-              lastMessage: aiMessage.content as string,
+              lastMessage: aiMessage.content,
             };
           }
           return session;
@@ -148,7 +170,7 @@ export default function ChatScreen() {
           return {
             ...session,
             [messageKey]: [...session[messageKey], newMessage],
-            lastMessage: newMessage.role === 'user' ? (newMessage.content as string) : session.lastMessage,
+            lastMessage: newMessage.role === 'user' ? newMessage.content : session.lastMessage,
           };
         }
         return session;
@@ -167,101 +189,47 @@ export default function ChatScreen() {
     toast.success('Records imported to context');
   };
 
-  const getAIResponse = (question: string, agent: 'doctor' | 'mom' | 'nutritionist'): string | JSX.Element => {
+  const getAIResponse = (question: string, agent: 'doctor' | 'mom' | 'nutritionist'): string => {
     const lowerQuestion = question.toLowerCase();
 
     if (agent === 'nutritionist') {
       if (lowerQuestion.includes('recipe') || lowerQuestion.includes('food')) {
-        return `Here is a nutritious recipe for your baby! 🥣\n\n**Beef and Broccoli Porridge**\n- Ingredients: 30g Beef, 20g Broccoli, 50g Rice\n- Instructions: Boil the beef and chop finely. Steam broccoli and mash. Cook with rice until soft.\n\nThis meal is rich in iron and vitamins!`;
+        return 'Here is a nutritious recipe for your baby! 🥣\n\n**Beef and Broccoli Porridge**\n- Ingredients: 30g Beef, 20g Broccoli, 50g Rice\n- Instructions: Boil the beef and chop finely. Steam broccoli and mash. Cook with rice until soft.\n\nThis meal is rich in iron and vitamins!';
       }
       if (lowerQuestion.includes('allergy')) {
-        return `Common allergens include eggs, milk, peanuts, and shellfish. Introduce these one by one and wait 3 days to check for reactions.`;
+        return 'Common allergens include eggs, milk, peanuts, and shellfish. Introduce these one by one and wait 3 days to check for reactions.';
       }
-      return `I can help with meal plans, recipes, and nutritional advice. What would you like to know?`;
+      return 'I can help with meal plans, recipes, and nutritional advice. What would you like to know?';
     }
 
     if (agent === 'doctor') {
       if (lowerQuestion.includes('temperature') || lowerQuestion.includes('37') || lowerQuestion.includes('38')) {
-        return `That's a great question. 👩‍⚕️\nAs Doctor AI, I will explain the condition of a 2-year-old girl from a medical perspective.\n\n---\n\n🔹 **Conclusion First:**\n> If the temperature is 37.5°C and the child has been crying for hours, it is a situation that requires immediate and careful observation.\n\nA slight fever alone is not an emergency, but prolonged crying can be a sign of pain, discomfort, early infection, or dehydration.\n\n---\n\n🔹 **Meaning of 37.5°C**\n- Normal temperature: 36.5~37.4°C\n- 37.5°C is a 'slight fever' and can be caused by temporary environmental factors, but if it persists, it could be the start of an infection.\n\n---\n\n🔹 **Home care**\n- Remove one layer of clothing\n- Keep the room cool (22~24°C)\n- Offer water or breast milk frequently\n- Check temperature every 1-2 hours`;
+        return 'That\'s a great question. 👩‍⚕️\nAs Doctor AI, I will explain the condition from a medical perspective.\n\nIf the temperature is 37.5°C and the child has been crying for hours, it is a situation that requires immediate and careful observation. A slight fever alone is not an emergency, but prolonged crying can be a sign of pain, discomfort, early infection, or dehydration.';
       }
       if (lowerQuestion.includes('sleep') || lowerQuestion.includes('irregular')) {
-        return `I'll speak based on an 8-month-old boy.\nAt this age, babies are very active and their naps decrease, so irregular sleep patterns are a very common issue.\n\n🔹 **Normal Sleep Pattern for an 8-Month-Old**\n\nTotal sleep time: 13-15 hours a day\n(About 10-11 hours at night + 2-3 naps totaling 3-4 hours)\n\nNight sleep: Usually sleeps around 8-9 PM and wakes up around 6-7 AM\n\nNaps: 2-3 times a day before morning, afternoon, and evening.\nNapping too late in the afternoon can push back bedtime.\n\n🔹 **Main reasons for irregular sleep patterns**\n\nDevelopmental leap (8-9 months)\nLearning new skills like flipping, crawling, and grabbing makes the brain active, making it hard to fall asleep.\n\nNap transition\nTransitioning from 3 to 2 naps.\n\nSeparation anxiety begins\nCrying when parents disappear, or wanting to sleep only in their arms.\n\nStimulating sleep environment\nBright lights, noise, TV, excessive stimulation during the day.\n\nFeeding habits\nFrequent night feedings disrupt the natural sleep rhythm.\n\n🔹 **Home correction methods**\n\n✅ **Create a consistent sleep routine**\n7 PM → Bath → Quiet play or reading → Lights out → Bedtime\nRepeating the same order helps form a biological signal for "it's time to sleep."\n\n✅ **Adjust nap times**\nSchedule naps around 9-10 AM and 1-2 PM.\nAvoid letting the baby sleep after 5 PM.\n\n✅ **Tidy the sleep environment**\nKeep the room slightly dark and quiet (22-24°C, humidity 40-60%).\nClearly distinguish between day and night lighting.\n\n✅ **Gradually reduce night feedings**\nAt 8 months, most babies can be reduced to one or fewer night feedings.\nIt might be a habitual awakening rather than hunger.\n\n✅ **Practice self-soothing (autonomous sleep)**\nPut the baby down before they are fully asleep to let them experience falling asleep on their own.\nIf they fuss a bit, wait for 3-5 minutes.\n\n🔹 **When to consult a doctor**\n\nWakes up more than 3 times a night with intense crying\nPersistent fatigue and fussiness during the day\nBreathing issues like snoring, apnea, frequent sweating, cyanosis\nIf a regular rhythm doesn't form after 3 weeks\n\n🔹 **Summary**\n\n👶 An 8-month-old's irregular sleep is mostly a natural part of development.\nHowever, establishing a routine, adjusting naps, and sleep training can stabilize it within 1-2 weeks.\nIf the baby frequently wakes up at night, or if there are breathing problems or severe crying, consulting a pediatrician is recommended.`;
+        return 'I\'ll speak based on an 8-month-old baby.\nAt this age, babies are very active and their naps decrease, so irregular sleep patterns are a very common issue.\n\nTotal sleep time: 13-15 hours a day\nNight sleep: Usually sleeps around 8-9 PM and wakes up around 6-7 AM\n\nTry creating a consistent sleep routine and adjusting nap times.';
       }
       if (lowerQuestion.includes('solid food') || lowerQuestion.includes('start')) {
-        return `That's a great question. 👩‍⚕️\nAs Doctor AI, I will explain starting solid foods from a medical perspective.\n\n---\n\n🔹 **When to Start Solid Foods**\n\nThe Korean Pediatric Society and WHO recommend:\n- Starting between **4-6 months of age**.\n- The most ideal time is around **6 months of age**.\n\n---\n\n🔹 **Signs Your Baby is Ready for Solid Foods**\n\nIf your baby shows 3 or more of the following signs, you can start:\n\n1. Can hold their head up and is stable when supported to sit\n2. Frequently puts hands or toys in their mouth\n3. Watches with interest as adults eat\n4. The 'tongue-thrust reflex' that pushes food out has decreased\n5. Seems unsatisfied with only milk (increased feeding, seems hungry)\n\n---\n\n🔹 **How to Start the First Solid Foods**\n\n✅ **Initial Stage (4-6 months)**\n- Start with one meal a day, one spoonful at a time\n- Rice cereal or soft vegetables like pumpkin, sweet potato, potato\n- To check for allergies, feed **one ingredient for 3 days**\n- Consistency: Watery (10x porridge)\n\n✅ **Middle Stage (7-8 months)**\n- Two meals a day\n- Grains + vegetables + protein (beef, chicken breast, tofu, fish)\n- Consistency: Like yogurt (7x porridge)\n\n✅ **Late Stage (9-11 months)**\n- Three meals a day\n- Various ingredient combinations\n- Consistency: Like soft rice (5x porridge)\n- Introduce finger foods\n\n---\n\n🔹 **Precautions**\n\n❌ **Foods to avoid before 1 year:**\n- Honey (risk of botulism)\n- Cow's milk (difficult to digest)\n- Nuts, popcorn (choking hazard)\n- Salt, sugar, seasonings (burden on kidneys)\n\n⚠️ **Allergy-prone foods:**\n- Eggs, milk, wheat, peanuts, fish, shellfish, soy\n- Introduce these **one at a time**, in **small amounts**.\n\n---\n\n🔹 **Principles of Progressing with Solid Foods**\n\n1. **Slowly**: Don't rush, go at your baby's pace\n2. **Regularly**: Give food at similar times each day\n3. **Variously**: Let them experience various tastes and textures\n4. **Don't force**: If they refuse, try again later\n5. **Continue milk/formula**: Continue breastfeeding/formula until they are used to solid foods\n\n---\n\n🔹 **When to consult a doctor**\n\n- Does not accept solid foods at all after 6 months\n- Allergic reactions like vomiting, diarrhea, rash\n- Weight gain stops or decreases\n- Persistently fussy or shows strong refusal\n\n---\n\nIn summary,\nit is best to start solid foods around **6 months of age**, when the baby is ready.\nStart slowly with one ingredient at a time, and carefully watch for allergic reactions.`;
+        return 'The Korean Pediatric Society and WHO recommend starting solid foods between 4-6 months of age, with the most ideal time being around 6 months of age. Start slowly with one ingredient at a time, and carefully watch for allergic reactions.';
       }
-      if (lowerQuestion.includes('development') || lowerQuestion.includes('growth')) {
-        return `Development at this stage varies greatly among individuals. If you are concerned, I recommend getting a check-up from a pediatrician.`;
-      }
-      return `If you tell me more about the symptoms you are curious about, I can give you a more accurate answer. Please refer to records such as temperature, sleep patterns, and meal amounts.`;
+      return 'If you tell me more about the symptoms you are curious about, I can give you a more accurate answer. Please refer to records such as temperature, sleep patterns, and meal amounts.';
     }
 
     if (agent === 'mom') {
       if (lowerQuestion.includes('sleep training')) {
-        return `I'm Mom AI, and I'll talk to you from a mother's heart.\n\n💬 **What is Sleep Training?**\n\n"Sleep training" is a process of **"helping them develop the power to fall asleep on their own."**\n\n🌜 **1. Tidy up the daily routine before bedtime**\nBath → Feeding → Dim lights → Lullaby → Hug → Put to bed\n\n🌙 **2. Put them down before they are fully asleep**\nThis is the hardest part, but try to put the baby down when they are drowsy.\n\n💖 **A word from Mom AI**\n"Sleep training is not a war, it's 'trust training'."`;
+        return 'I\'m Mom AI, and I\'ll talk to you from a mother\'s heart.\n\n💬 **What is Sleep Training?**\n\n"Sleep training" is a process of "helping them develop the power to fall asleep on their own."\n\n🌜 **1. Tidy up the daily routine before bedtime**\nBath → Feeding → Dim lights → Lullaby → Hug → Put to bed\n\n🌙 **2. Put them down before they are fully asleep**\nThis is the hardest part, but try to put the baby down when they are drowsy.\n\n💖 **A word from Mom AI**\n"Sleep training is not a war, it\'s \'trust training\'."';
       }
       if (lowerQuestion.includes('solid food') && (lowerQuestion.includes('refuse') || lowerQuestion.includes('not') || lowerQuestion.includes('eat'))) {
-        return `It's so upsetting when that happens 😢\nAs Mom AI, I know that feeling all too well.\nYou try so hard to feed them even one spoonful, but they turn their head, clamp their mouth shut, and seeing that makes you blame yourself, "Why is this happening?"
-But it's okay — refusing solid food at this stage is **a part of development that almost every baby goes through**.\n\n🍼 **1. First, "refusal" is a sign of growth**\n\nAround 8 months, babies are at a stage where they can **"express what they want and don't want."**\nIn other words, refusing solid food is not just about taste, but the beginning of their autonomy, "I'll decide!"
-Viewing this stage positively is the first step 🌱\n\n🍎 **2. Don't force-feed, show them a "joyful table"**\n\nIf the baby is tense or anxious at the table, they'll shut their mouth even tighter.\nSo the atmosphere is important.\n\n✅ Show them you and your partner eating together at the table.\n✅ React brightly, "This is delicious~!" to spark their curiosity.\n✅ If they refuse once, it's okay to take a break and try again in 30 minutes.\n\n💬 Changing it from "feeding time" to "mealtime together" greatly reduces resistance.\n\n🥄 **3. Try changing the texture, temperature, or utensils**\n\nHalf the reason babies refuse solid food is the 'texture.'\n\nThey dislike it if it's too watery or too thick.\n\nThey also dislike it if it's too hot or too cold.\n👉 Try making it lukewarm, and switch to a thin, soft spoon.\n\nAlso, some babies prefer to touch or feed themselves with their hands rather than being spoon-fed.\nIt's okay if it gets a little messy — exploration is part of learning to eat 💕\n\n🥕 **4. Add a 'twist' to familiar ingredients**\n\nFor example,\n\nAdding a fragrant ingredient like pumpkin, apple, or broccoli to their usual rice porridge, or\n\nA slight change in texture (mashing it more coarsely) can make a difference.\n\n🌤️ **5. Try when they are hungry, but not tired**\n\nAnyone would hate it if you try to feed them when they are too tired or right after waking up.\n\nRight after waking up from a nap,\n\n1-2 hours after a milk feeding,\n\nWhen they are a little hungry after active play\nare the times with the highest success rate ✨\n\n❤️ **A word from Mom AI**\n\n"No child who doesn't eat now will not eat forever."
-It's okay if they don't eat for a day or two.\nWhat's important is to make sure the baby doesn't dislike the 'experience of eating.'\n\nOnce the baby regains interest in food, they'll start "suddenly eating well" as if by promise 😊\nDon't be impatient; building a "joyful meal experience" is the answer.`;
+        return 'It\'s so upsetting when that happens 😢\nAs Mom AI, I know that feeling all too well.\nBut it\'s okay — refusing solid food at this stage is a part of development that almost every baby goes through.\n\nTry changing the texture, temperature, or utensils. Don\'t force-feed, show them a "joyful table". Once the baby regains interest in food, they\'ll start eating well.';
       }
       if (lowerQuestion.includes('stress') || lowerQuestion.includes('hard') || lowerQuestion.includes('tired')) {
-        return `💬 "Is there a way to relieve parenting stress?"
-
-Honestly... how could there not be.
-The sound of a baby crying all day, spilled baby food, not napping,
-and in the meantime, cooking and doing laundry.
-When you see the quiet house after putting the baby to sleep, you think "Finally..." but then you worry about tomorrow. I know that feeling all too well 😔
-
-🌤️ **1. It's enough to be a "good enough mom," not a "perfect mom"**
-
-There's no such thing as perfect parenting.
-A baby crying, not eating, waking up at night is not because mom did something wrong, but just a part of the baby's growth process.
-It's okay to be a little less than perfect —
-the fact that mom is enduring is love itself. 💖
-
-🫖 **2. Make a very short 'me time'**
-
-Even 10 minutes is fine.
-
-Have a cup of coffee while the baby naps ☕
-
-Listen to a song with earphones in 🎧
-
-Open a window and take a deep breath of fresh air 🌿
-
-That short 10 minutes gives you the strength to get through the day.
-The key to stress relief is not "escape" but **"breathing."**
-
-💬 **3. Be sure to 'voice' your feelings**
-
-Parenting can be isolating.
-So you need a space where you can say, "I'm having a hard time."
-To your husband, to a friend, or to other moms with the same worries.
-The moment you say it,
-you feel a sense of relief, "I'm not the only one."
-
-💞 **4. And also... come to the ToDoc community**
-
-There, you'll find real moms who have struggled just like you today.
-Someone talks about succeeding with baby food today,
-someone talks about their baby who cried all night finally sleeping.
-
-Sometimes, a single comment saying "Me too" is the biggest comfort. 🌙
-
-❤️ **A word from Mom AI**
-
-"Parenting is not something you do alone.
-Me, you, all of us are learning as we endure a little at a time."
-
-When things are tough, be sure to stop by ToDoc and leave even a small story.`;
+        return '💬 "Is there a way to relieve parenting stress?"\n\n🌤️ **1. It\'s enough to be a "good enough mom," not a "perfect mom"**\nThere\'s no such thing as perfect parenting.\n\n🫖 **2. Make a very short \'me time\'**\nEven 10 minutes is fine. Have a cup of coffee while the baby naps ☕\n\n💬 **3. Be sure to \'voice\' your feelings**\nParenting can be isolating. Share your feelings with others.\n\n💞 **4. And also... come to the ToDoc community**\nYou\'ll find real moms who have struggled just like you.';
       }
-      return `I'm Mom AI, and I'll talk to you from a mother's heart. What's on your mind?`;
+      return 'I\'m Mom AI, and I\'ll talk to you from a mother\'s heart. What\'s on your mind?';
     }
 
     return "I'm here to help!";
-  }
+  };
 
   const quickQuestions = activeAgent === 'doctor'
     ? ['Is a temperature of 37.5°C okay?', 'My baby\'s sleep pattern is irregular', 'When should I start solid foods?']
@@ -307,14 +275,14 @@ When things are tough, be sure to stop by ToDoc and leave even a small story.`;
     <div className="h-full w-full flex flex-col">
       <div className="max-w-2xl mx-auto w-full flex flex-col h-full">
         <div className="p-4 pb-2">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-[#6AA6FF] dark:text-[#9ADBC6]">{t('chat.title')}</h2>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <h2 className="text-[#6AA6FF] dark:text-[#9ADBC6] whitespace-nowrap flex-shrink-0">{t('chat.title')}</h2>
+            <div className="flex items-center gap-1.5 min-w-0 flex-shrink">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleImportRecord}
-                className="text-xs h-8 border-[#6AA6FF]/30 text-[#6AA6FF] hover:bg-[#6AA6FF]/10"
+                className="text-xs h-8 border-[#6AA6FF]/30 text-[#6AA6FF] hover:bg-[#6AA6FF]/10 hidden sm:flex"
               >
                 <FileText className="h-3 w-3 mr-1" />
                 {t('chat.importRecords')}
@@ -325,10 +293,10 @@ When things are tough, be sure to stop by ToDoc and leave even a small story.`;
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-[#6AA6FF]/30 text-sm h-8"
+                    className="border-[#6AA6FF]/30 text-xs sm:text-sm h-8 max-w-[70px] sm:max-w-[90px]"
                   >
-                    <span className="max-w-[100px] truncate">{currentSession?.name}</span>
-                    <ChevronDown className="h-3 w-3 ml-1" />
+                    <span className="truncate">{currentSession?.name}</span>
+                    <ChevronDown className="h-3 w-3 ml-0.5 flex-shrink-0" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -360,24 +328,39 @@ When things are tough, be sure to stop by ToDoc and leave even a small story.`;
           <TabsList className="grid grid-cols-3 w-full bg-card/80 p-1 rounded-xl">
             <TabsTrigger
               value="doctor"
-              className="flex items-center gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#6AA6FF] data-[state=active]:to-[#5a96ef] data-[state=active]:text-white rounded-lg"
+              className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors doctor-ai-tab"
+              style={
+                !isDark && activeAgent === 'doctor'
+                  ? { backgroundColor: '#6AA6FF', color: '#ffffff' }
+                  : undefined
+              }
             >
-              <Bot className="h-3.5 w-3.5" />
-              <span>{t('chat.doctor')}</span>
+              <Bot className="h-3.5 w-3.5" style={!isDark && activeAgent === 'doctor' ? { color: '#ffffff' } : undefined} />
+              <span style={!isDark && activeAgent === 'doctor' ? { color: '#ffffff' } : undefined}>{t('chat.doctor')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="mom"
-              className="flex items-center gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#FFC98B] data-[state=active]:to-[#ffb86b] data-[state=active]:text-gray-800 rounded-lg"
+              className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors mom-ai-tab"
+              style={
+                !isDark && activeAgent === 'mom'
+                  ? { backgroundColor: '#FFC98B', color: '#1f2937' }
+                  : undefined
+              }
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>{t('chat.mom')}</span>
+              <Sparkles className="h-3.5 w-3.5" style={!isDark && activeAgent === 'mom' ? { color: '#1f2937' } : undefined} />
+              <span style={!isDark && activeAgent === 'mom' ? { color: '#1f2937' } : undefined}>{t('chat.mom')}</span>
             </TabsTrigger>
             <TabsTrigger
               value="nutritionist"
-              className="flex items-center gap-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#9ADBC6] data-[state=active]:to-[#7ac7b0] data-[state=active]:text-white rounded-lg"
+              className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors nutrition-ai-tab"
+              style={
+                !isDark && activeAgent === 'nutritionist'
+                  ? { backgroundColor: '#9ADBC6', color: '#ffffff' }
+                  : undefined
+              }
             >
-              <Utensils className="h-3.5 w-3.5" />
-              <span>{t('chat.nutrition')}</span>
+              <Utensils className="h-3.5 w-3.5" style={!isDark && activeAgent === 'nutritionist' ? { color: '#ffffff' } : undefined} />
+              <span style={!isDark && activeAgent === 'nutritionist' ? { color: '#ffffff' } : undefined}>{t('chat.nutrition')}</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -399,13 +382,17 @@ When things are tough, be sure to stop by ToDoc and leave even a small story.`;
                       : activeAgent === 'mom' ? 'bg-[#FFC98B]'
                         : 'bg-[#9ADBC6]'
                     }`}>
-                    <AvatarFallback>
+                    <AvatarFallback className="[&>*]:transition-colors">
                       {message.role === 'user' ? (
-                        <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                        <User className="h-4 w-4 text-black dark:text-white" />
                       ) : activeAgent === 'nutritionist' ? (
-                        <Utensils className="h-4 w-4 text-white" />
+                        <Utensils className="h-4 w-4 text-black dark:text-white" />
+                      ) : activeAgent === 'doctor' ? (
+                        <Bot className="h-4 w-4 text-black dark:text-white" />
+                      ) : activeAgent === 'mom' ? (
+                        <Sparkles className="h-4 w-4 text-black dark:text-white" />
                       ) : (
-                        <Bot className={`h-4 w-4 ${activeAgent === 'doctor' ? 'text-white' : 'text-gray-800'}`} />
+                        <Bot className="h-4 w-4 text-black dark:text-white" />
                       )}
                     </AvatarFallback>
                   </Avatar>

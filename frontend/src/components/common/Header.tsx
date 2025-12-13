@@ -62,17 +62,17 @@ export default function Header({ selectedBaby, onBabyChange, onSettingsClick, on
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6AA6FF] to-[#9ADBC6] flex items-center justify-center">
           <span className="text-white">📖</span>
         </div>
-        <h1 className="text-[#6AA6FF] dark:text-[#9ADBC6]">ToDoc 2.0</h1>
+        <h1 className="text-[#6AA6FF] dark:text-[#9ADBC6]">ToDoc</h1>
       </div>
 
       <Select value={selectedBaby} onValueChange={onBabyChange}>
         <SelectTrigger className="w-[140px] border-[#6AA6FF]/30 dark:border-[#9ADBC6]/30 bg-card text-foreground">
-          <SelectValue placeholder="Select Baby" />
+          <SelectValue placeholder={t('header.selectBaby')} />
         </SelectTrigger>
         <SelectContent className="bg-popover border-border">
-          <SelectItem value="1">First Child</SelectItem>
-          <SelectItem value="2">Second Child</SelectItem>
-          <SelectItem value="3">Third Child</SelectItem>
+          <SelectItem value="1">{t('header.firstChild')}</SelectItem>
+          <SelectItem value="2">{t('header.secondChild')}</SelectItem>
+          <SelectItem value="3">{t('header.thirdChild')}</SelectItem>
         </SelectContent>
       </Select>
 
