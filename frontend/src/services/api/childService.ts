@@ -1,117 +1,58 @@
-import { ChildRegistrationData } from '@/screens/ChildRegistration/ChildRegistrationScreen';
-
 /**
- * Register a child for the current user
- * 
- * TODO: Replace this with actual API call when backend is ready
- * 
- * @param childData - Child information to register
- * @returns Promise that resolves when child is registered
- * @throws Error if registration fails
+ * Child Service - 아이 정보 API 연동
  */
-export async function registerChild(childData: ChildRegistrationData): Promise<void> {
-  // TODO: Replace with actual API endpoint
-  // Example implementation:
-  /*
-  const response = await fetch('/api/children', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getAuthToken()}`,
-    },
-    body: JSON.stringify({
-      name: childData.name,
-      birth_date: childData.birthDate, // Already in YYYY-MM-DD format
-      gender: childData.gender,
-    }),
-  });
+import { apiClient } from '@/api/client';
+import type { KidCreate, KidResponse } from '@/api/types';
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to register child');
-  }
-
-  const result = await response.json();
-  return result;
-  */
-
-  // Temporary mock implementation for frontend development
-  return new Promise((resolve) => {
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log('Child registered (mock):', childData);
-      // Store in localStorage temporarily for development
-      const children = JSON.parse(localStorage.getItem('children') || '[]');
-      children.push({
-        id: Date.now().toString(),
-        ...childData,
-        // birthDate is already a string in YYYY-MM-DD format
-      });
-      localStorage.setItem('children', JSON.stringify(children));
-      localStorage.setItem('hasCompletedOnboarding', 'true');
-      resolve();
-    }, 500);
-  });
+export interface ChildRegistrationData {
+  name: string;
+  birthDate: string; // YYYY-MM-DD format string
+  gender: 'boy' | 'girl';
 }
 
 /**
- * Check if user has completed child registration
- * 
- * TODO: Replace with actual API call to check if user has children
- * 
- * @returns Promise that resolves to true if user has registered a child
+ * 아이 등록
+ */
+export async function registerChild(childData: ChildRegistrationData): Promise<KidResponse> {
+  const apiData: KidCreate = {
+    name: childData.name,
+    birth_date: childData.birthDate,
+    gender: childData.gender === 'boy' ? 'male' : 'female',
+  };
+
+  return await apiClient.post<KidResponse>('/api/v1/kids', apiData);
+}
+
+/**
+ * 현재 사용자의 아이 목록 조회
+ */
+export async function getChildren(): Promise<KidResponse[]> {
+  return await apiClient.get<KidResponse[]>('/api/v1/kids');
+}
+
+/**
+ * 아이 등록 여부 확인 (온보딩 완료 여부)
  */
 export async function hasChildRegistered(): Promise<boolean> {
-  // TODO: Replace with actual API endpoint
-  // Example implementation:
-  /*
-  const response = await fetch('/api/children', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-    },
-  });
-
-  if (!response.ok) {
+  try {
+    const children = await getChildren();
+    return children && children.length > 0;
+  } catch (error) {
+    console.error('Error checking child registration:', error);
     return false;
   }
-
-  const children = await response.json();
-  return children && children.length > 0;
-  */
-
-  // Temporary mock implementation
-  const hasCompleted = localStorage.getItem('hasCompletedOnboarding') === 'true';
-  return Promise.resolve(hasCompleted);
 }
 
 /**
- * Get all children for the current user
- * 
- * TODO: Replace with actual API call
- * 
- * @returns Promise that resolves to array of child objects
+ * 특정 아이 정보 조회
  */
-export async function getChildren(): Promise<any[]> {
-  // TODO: Replace with actual API endpoint
-  // Example implementation:
-  /*
-  const response = await fetch('/api/children', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${getAuthToken()}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch children');
-  }
-
-  return response.json();
-  */
-
-  // Temporary mock implementation
-  const children = JSON.parse(localStorage.getItem('children') || '[]');
-  return Promise.resolve(children);
+export async function getChildById(kidId: number): Promise<KidResponse> {
+  return await apiClient.get<KidResponse>(`/api/v1/kids/${kidId}`);
 }
 
+/**
+ * 아이 정보 삭제
+ */
+export async function deleteChild(kidId: number): Promise<void> {
+  await apiClient.delete(`/api/v1/kids/${kidId}`);
+}

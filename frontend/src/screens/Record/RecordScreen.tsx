@@ -46,30 +46,7 @@ interface JournalEntry {
 // Diaper details structure:
 // { amount: 'low' | 'medium' | 'high', condition: 'normal' | 'diarrhea' | 'constipation', color: 'yellow' | 'brown' | 'green' | 'other' }
 
-const mockEntries: JournalEntry[] = [
-  {
-    id: '1',
-    category: 'meal',
-    title: 'First solid food!',
-    content: 'Tried rice cereal for the first time. A bit strange for the little one, but ate half of it. So proud!',
-    timestamp: 'November 8, 2025',
-    date: new Date(2025, 10, 8),
-    details: { foodType: 'Rice Cereal', amount: '30ml', didBurp: true }
-  },
-  {
-    id: '2',
-    category: 'sleep',
-    title: 'Slept 5 hours straight!',
-    content: 'Finally slept for 5 hours straight through the night. Mom and Dad are crying tears of joy... 😭',
-    timestamp: 'November 7, 2025',
-    date: new Date(2025, 10, 7, 22, 0, 0),
-    details: { 
-      startTime: new Date(2025, 10, 7, 22, 0, 0), 
-      endTime: new Date(2025, 10, 8, 3, 0, 0), 
-      quality: 'Good' 
-    }
-  },
-];
+// 더미 데이터 제거됨 - API에서 가져올 예정
 
 const recordCategories = (t: (key: any) => string) => [
   { id: 'growth', label: t('category.growth'), icon: <TrendingUp className="h-5 w-5" />, color: 'var(--primary)' },
@@ -738,7 +715,7 @@ const JournalForm = ({ categoryId, onSave, onBack, isDarkMode }: { categoryId: s
 export default function RecordScreen({ isDarkMode = false }: { isDarkMode?: boolean }) {
   const { t, language } = useLanguage();
   const [view, setView] = useState<{ screen: 'list' | 'form'; categoryId: string | null }>({ screen: 'list', categoryId: null });
-  const [entries, setEntries] = useState<JournalEntry[]>(mockEntries);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isAiSheetOpen, setIsAiSheetOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
 

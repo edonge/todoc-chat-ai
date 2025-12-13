@@ -1,4 +1,8 @@
-import { useState } from 'react';
+/**
+ * App.tsx - 메인 앱 컴포넌트
+ * 인증 상태에 따른 화면 라우팅
+ */
+import { useState, useEffect } from 'react';
 import Header from './components/common/Header';
 import DialNavigation from './screens/Navigation/DialNavigation';
 import HomeScreen from './screens/Home/HomeScreen';
@@ -8,41 +12,66 @@ import CommunityScreen from './screens/Community/CommunityScreen';
 import LoginScreen from './screens/Login/LoginScreen';
 import ChildRegistrationScreen from './screens/ChildRegistration/ChildRegistrationScreen';
 import { Toaster } from './components/ui/sonner';
-import { hasChildRegistered } from './services/api/childService';
+import { useAuthContext } from './contexts/AuthContext';
+import { hasChildRegistered, getChildren } from './services/api/childService';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuthContext();
+
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedBaby, setSelectedBaby] = useState('1');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Check if user has completed onboarding when they log in
-  const handleLogin = async () => {
-    setIsLoggedIn(true);
-    setIsCheckingOnboarding(true);
-    
-    try {
-      const hasChild = await hasChildRegistered();
-      setHasCompletedOnboarding(hasChild);
-    } catch (error) {
-      console.error('Error checking child registration:', error);
-      // If there's an error, assume onboarding is needed
-      setHasCompletedOnboarding(false);
-    } finally {
-      setIsCheckingOnboarding(false);
-    }
-  };
+  // 로그인 후 온보딩(아이 등록) 상태 확인
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (isAuthenticated && hasCompletedOnboarding === null) {
+        setIsCheckingOnboarding(true);
+        try {
+          const hasChild = await hasChildRegistered();
+          setHasCompletedOnboarding(hasChild);
 
+          // 아이가 있으면 첫 번째 아이 선택
+          if (hasChild) {
+            const children = await getChildren();
+            if (children.length > 0) {
+              setSelectedBaby(children[0].id.toString());
+            }
+          }
+        } catch (error) {
+          console.error('Error checking onboarding:', error);
+          setHasCompletedOnboarding(false);
+        } finally {
+          setIsCheckingOnboarding(false);
+        }
+      }
+    };
+
+    checkOnboarding();
+  }, [isAuthenticated, hasCompletedOnboarding]);
+
+  // 로그아웃 시 상태 초기화
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    logout();
     setHasCompletedOnboarding(null);
     setCurrentTab('home');
+    setSelectedBaby('1');
   };
 
-  const handleOnboardingComplete = () => {
+  // 온보딩 완료 처리
+  const handleOnboardingComplete = async () => {
     setHasCompletedOnboarding(true);
+    // 새로 등록한 아이 정보 가져오기
+    try {
+      const children = await getChildren();
+      if (children.length > 0) {
+        setSelectedBaby(children[0].id.toString());
+      }
+    } catch (error) {
+      console.error('Error fetching children:', error);
+    }
   };
 
   const handleDarkModeToggle = (enabled: boolean) => {
@@ -54,18 +83,8 @@ export default function App() {
     }
   };
 
-  // Show login screen if not logged in
-  if (!isLoggedIn) {
-    return (
-      <>
-        <LoginScreen onLogin={handleLogin} />
-        <Toaster position="top-center" />
-      </>
-    );
-  }
-
-  // Show loading state while checking onboarding status
-  if (isCheckingOnboarding) {
+  // 인증 로딩 중
+  if (authLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <div className="text-center">
@@ -76,8 +95,30 @@ export default function App() {
     );
   }
 
-  // Show child registration screen if logged in but hasn't completed onboarding
-  if (hasCompletedOnboarding === false) {
+  // 로그인 안됨 → 로그인 화면
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginScreen />
+        <Toaster position="top-center" />
+      </>
+    );
+  }
+
+  // 온보딩 확인 중
+  if (isCheckingOnboarding || hasCompletedOnboarding === null) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#6AA6FF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인됨 + 온보딩 미완료 → 아이 등록 화면
+  if (!hasCompletedOnboarding) {
     return (
       <>
         <ChildRegistrationScreen onComplete={handleOnboardingComplete} />
@@ -86,6 +127,7 @@ export default function App() {
     );
   }
 
+  // 로그인됨 + 온보딩 완료 → 메인 앱
   const handleAddRecord = () => {
     setCurrentTab('record');
   };
@@ -125,7 +167,7 @@ export default function App() {
         onDarkModeToggle={handleDarkModeToggle}
       />
 
-      {/* Main Content Area - Add bottom padding to prevent dial overlap */}
+      {/* Main Content Area */}
       <main className="flex-1 pt-16 pb-24 overflow-hidden bg-background">
         {renderScreen()}
       </main>

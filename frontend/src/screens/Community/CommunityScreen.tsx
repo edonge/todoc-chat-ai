@@ -50,85 +50,7 @@ export default function CommunityScreen() {
     location: '',
   });
 
-  const mockPosts: Post[] = [
-    {
-      id: '1',
-      author: 'Minji\'s Mom',
-      authorInitial: 'M',
-      category: 'Recipes',
-      title: 'Pumpkin Puree Recipe 🎃',
-      content: 'A sweet pumpkin puree for 6-month-olds. It\'s soft, sweet, and my baby loves it! I steamed the pumpkin for 20 minutes and mashed it with a little bit of breast milk.',
-      image: 'https://images.unsplash.com/photo-1464965911861-746a04b4b0ae?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-      likes: 24,
-      comments: 2,
-      timestamp: '2 hours ago',
-      tags: ['baby food', 'pumpkin', '6 months'],
-      commentsList: [
-        { id: 'c1', author: 'Seojun Mom', content: 'My baby loves pumpkin too!', timestamp: '1 hour ago' },
-        { id: 'c2', author: 'Hana Mom', content: 'Do you peel it before steaming?', timestamp: '30 mins ago' },
-      ],
-    },
-    {
-      id: '2',
-      author: 'Seojun\'s Mom',
-      authorInitial: 'S',
-      category: 'Tips',
-      title: 'Night Sleep Training Success Story 🌙',
-      content: 'My baby finally sleeps through the night! Sharing my 3-week training journey. The key was consistency and a solid bedtime routine.',
-      likes: 42,
-      comments: 1,
-      timestamp: '5 hours ago',
-      tags: ['sleep', 'night sleep', 'training'],
-      commentsList: [
-        { id: 'c3', author: 'Minji Mom', content: 'I need to try this...', timestamp: '2 hours ago' },
-      ],
-    },
-    {
-      id: '3',
-      author: 'Hayun\'s Family',
-      authorInitial: 'H',
-      category: 'Recipes',
-      title: 'Beef & Seaweed Baby Food 🥩',
-      content: 'A nutritious meal with iron-rich beef and seaweed. Great for babies starting from 7 months.',
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-      likes: 31,
-      comments: 0,
-      timestamp: '1 day ago',
-      tags: ['baby food', 'beef', 'seaweed'],
-      commentsList: [],
-    },
-    {
-      id: '4',
-      author: 'Jiu\'s Mom',
-      authorInitial: 'J',
-      category: 'Support',
-      title: 'My baby won\'t nap 😭',
-      content: 'My 10-month-old wakes up after just 30 minutes of napping. What should I do? I\'m exhausted.',
-      likes: 18,
-      comments: 3,
-      timestamp: '1 day ago',
-      tags: ['sleep', 'nap', '10 months'],
-      commentsList: [
-        { id: 'c4', author: 'Expert Mom', content: 'Try adjusting the wake windows.', timestamp: '20 hours ago' },
-        { id: 'c5', author: 'Jiu Mom', content: 'I will try that, thanks!', timestamp: '19 hours ago' },
-        { id: 'c6', author: 'New Mom', content: 'Same here...', timestamp: '5 hours ago' },
-      ],
-    },
-    {
-      id: '5',
-      author: 'Yunseo\'s Family',
-      authorInitial: 'Y',
-      category: 'Tips',
-      title: 'Recommended Baby Activities 🎨',
-      content: 'Introducing some fun activities to do with your 8-month-old! Sensory play with cooked pasta is a hit.',
-      image: 'https://images.unsplash.com/photo-1596464716127-f9a87595ca55?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-      likes: 27,
-      comments: 0,
-      timestamp: '2 days ago',
-      tags: ['play', 'development', '8 months'],
-      commentsList: [],
-    },
-  ];
+  // 더미 데이터 제거됨 - API에서 가져올 예정
 
   const handleLike = (postId: string) => {
     setLikedPosts((prev) => {
@@ -180,7 +102,7 @@ export default function CommunityScreen() {
     toast.success('Post created successfully!');
   };
 
-  const allPosts = [...posts, ...mockPosts];
+  const allPosts = [...posts];
 
   const filteredPosts = allPosts.filter((post) => {
     if (activeTab === 'all') return true;
@@ -452,7 +374,7 @@ export default function CommunityScreen() {
                 </div>
 
                 <div className="flex gap-2 mb-3 flex-wrap">
-                  {post.tags.map((tag, idx) => (
+                  {post.tags.map((tag: string, idx: number) => (
                     <span
                       key={idx}
                       className="text-xs px-2 py-1 rounded-full post-tag"
@@ -496,7 +418,7 @@ export default function CommunityScreen() {
                   <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 animate-in slide-in-from-top-2">
                     <div className="space-y-3 mb-4">
                       {post.commentsList.length > 0 ? (
-                        post.commentsList.map((comment) => (
+                        post.commentsList.map((comment: Comment) => (
                           <div key={comment.id} className="flex gap-2">
                             <Avatar className="h-6 w-6 bg-gray-200 dark:bg-gray-700">
                               <AvatarFallback className="text-[10px] text-[#F3F3F3] dark:text-[#F3F3F3]">{comment.author[0]}</AvatarFallback>
