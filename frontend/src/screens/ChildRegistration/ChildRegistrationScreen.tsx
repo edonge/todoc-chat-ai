@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { registerChild } from '@/services/api/childService';
+import { registerChild, getChildren } from '@/services/api/childService';
 import { isValidYYYYMMDD, isDateInPast } from '@/utils/dateValidation';
 
 interface ChildRegistrationScreenProps {
@@ -25,6 +25,21 @@ export default function ChildRegistrationScreen({ onComplete }: ChildRegistratio
   const [gender, setGender] = useState<'boy' | 'girl' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ensureSingleKid = async () => {
+      try {
+        const children = await getChildren();
+        if (children.length > 0) {
+          onComplete();
+        }
+      } catch (err) {
+        console.error('Error verifying existing child registration:', err);
+      }
+    };
+
+    ensureSingleKid();
+  }, [onComplete]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
