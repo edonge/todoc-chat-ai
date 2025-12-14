@@ -43,7 +43,7 @@ export default function CommunityScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   const [newPost, setNewPost] = useState({
-    category: 'Recipes',
+    category: 'Recipe',
     title: '',
     content: '',
     tags: '',
@@ -97,7 +97,7 @@ export default function CommunityScreen() {
 
     setPosts([post, ...posts]);
     setIsWriting(false);
-    setNewPost({ category: 'Recipes', title: '', content: '', tags: '', location: '' });
+    setNewPost({ category: 'Recipe', title: '', content: '', tags: '', location: '' });
     setShowMap(false);
     toast.success('Post created successfully!');
   };
@@ -106,9 +106,9 @@ export default function CommunityScreen() {
 
   const filteredPosts = allPosts.filter((post) => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'recipe') return post.category === 'Recipes';
-    if (activeTab === 'tips') return post.category === 'Tips';
-    if (activeTab === 'qna') return post.category === 'Support';
+    if (activeTab === 'recipe') return post.category === 'Recipe';
+    if (activeTab === 'general') return post.category === 'General';
+    if (activeTab === 'marketplace') return post.category === 'Marketplace';
     return true;
   });
 
@@ -122,7 +122,7 @@ export default function CommunityScreen() {
               size="icon"
               onClick={() => {
                 setIsWriting(false);
-                setNewPost({ category: 'Recipes', title: '', content: '', tags: '', location: '' });
+                setNewPost({ category: 'Recipe', title: '', content: '', tags: '', location: '' });
                 setShowMap(false);
               }}
               className="text-gray-600 dark:text-gray-400 hover:text-[#6AA6FF] dark:hover:text-[#9ADBC6]"
@@ -136,7 +136,7 @@ export default function CommunityScreen() {
             <div>
               <Label className="text-sm font-medium mb-2 block">{t('community.category')}</Label>
               <div className="grid grid-cols-3 gap-2">
-                {['Recipes', 'Tips', 'Support'].map((category) => (
+                {['Recipe', 'General', 'Marketplace'].map((category) => (
                   <button
                     key={category}
                     onClick={() => setNewPost({ ...newPost, category })}
@@ -148,7 +148,7 @@ export default function CommunityScreen() {
                       }
                     `}
                   >
-                    {category === 'Recipes' ? t('community.recipes') : category === 'Tips' ? t('community.tips') : t('community.support')}
+                    {category === 'Recipe' ? t('community.recipe') : category === 'General' ? t('community.general') : t('community.marketplace')}
                   </button>
                 ))}
               </div>
@@ -244,7 +244,7 @@ export default function CommunityScreen() {
                 className="flex-1"
                 onClick={() => {
                   setIsWriting(false);
-                  setNewPost({ category: 'Recipes', title: '', content: '', tags: '', location: '' });
+                  setNewPost({ category: 'Recipe', title: '', content: '', tags: '', location: '' });
                   setShowMap(false);
                 }}
               >
@@ -292,7 +292,7 @@ export default function CommunityScreen() {
 
         <div className="mb-4 bg-card rounded-2xl p-1.5 shadow-md border border-border">
           <div className="grid grid-cols-4 gap-1 relative">
-            {['all', 'recipe', 'tips', 'qna'].map((tab) => (
+            {['all', 'general', 'marketplace', 'recipe'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -305,9 +305,9 @@ export default function CommunityScreen() {
                 `}
               >
                 {tab === 'all' && t('community.all')}
-                {tab === 'recipe' && t('community.recipes')}
-                {tab === 'tips' && t('community.tips')}
-                {tab === 'qna' && t('community.support')}
+                {tab === 'recipe' && t('community.recipe')}
+                {tab === 'general' && t('community.general')}
+                {tab === 'marketplace' && t('community.marketplace')}
               </button>
             ))}
           </div>
@@ -354,9 +354,9 @@ export default function CommunityScreen() {
                   {!post.image && (
                     <Badge
                       variant="secondary"
-                      className={`${post.category === 'Recipes'
+                      className={`${post.category === 'Recipe'
                           ? 'bg-[#FFC98B]/20 text-[#FFC98B]'
-                          : post.category === 'Tips'
+                          : post.category === 'General'
                             ? 'bg-[#6AA6FF]/20 text-[#6AA6FF]'
                             : 'bg-[#9ADBC6]/20 text-[#9ADBC6]'
                         }`}

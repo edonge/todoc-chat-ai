@@ -3,10 +3,6 @@ export const translations = {
     // Header
     'header.settings': '설정',
     'header.logout': '로그아웃',
-    'header.selectBaby': '아기 선택',
-    'header.firstChild': '첫째',
-    'header.secondChild': '둘째',
-    'header.thirdChild': '셋째',
 
     // Navigation
     'nav.home': '홈',
@@ -164,9 +160,9 @@ export const translations = {
     'community.contentPlaceholder': '생각을 공유하세요...',
     'community.category': '카테고리',
     'community.all': '전체',
-    'community.recipes': '레시피',
-    'community.tips': '팁',
-    'community.support': '지원',
+    'community.recipe': '레시피',
+    'community.general': '일반',
+    'community.marketplace': '마켓플레이스',
     'community.tags': '태그',
     'community.tagsPlaceholder': '태그 추가 (쉼표로 구분)',
     'community.addLocation': '위치 추가',
@@ -223,10 +219,6 @@ export const translations = {
     // Header
     'header.settings': 'Settings',
     'header.logout': 'Logout',
-    'header.selectBaby': 'Select Baby',
-    'header.firstChild': 'First Child',
-    'header.secondChild': 'Second Child',
-    'header.thirdChild': 'Third Child',
 
     // Navigation
     'nav.home': 'Home',
@@ -384,9 +376,9 @@ export const translations = {
     'community.contentPlaceholder': 'Share your thoughts...',
     'community.category': 'Category',
     'community.all': 'All',
-    'community.recipes': 'Recipes',
-    'community.tips': 'Tips',
-    'community.support': 'Support',
+    'community.recipe': 'Recipe',
+    'community.general': 'General',
+    'community.marketplace': 'Marketplace',
     'community.tags': 'Tags',
     'community.tagsPlaceholder': 'Add tags (comma separated)',
     'community.addLocation': 'Add Location',

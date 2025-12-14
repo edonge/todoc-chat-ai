@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, Bot, TrendingUp, Heart, Moon, Camera } from 'lucide-react';
+import { Plus, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,9 @@ import { getChildren, uploadChildPhoto } from '@/services/api/childService';
 
 interface HomeScreenProps {
   onAddRecord: () => void;
-  onOpenChat: () => void;
 }
 
-export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps) {
+export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
   const { t, language } = useLanguage();
   const [babyId, setBabyId] = useState<number | null>(null);
   const [babyName, setBabyName] = useState('');
@@ -114,14 +113,6 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
 
   // TODO: API에서 최근 기록 가져오기
   const recentRecords: { type: string; time: string; duration?: string; amount?: string; temp?: string; icon: any; color: string }[] = [];
-
-  // TODO: API에서 AI 인사이트 가져오기
-  const aiInsights: { type: string; message: string; time: string }[] = [];
-
-  // 상태 카드용 데이터 (기록 없으면 '-')
-  const growthStatus = '-';
-  const healthStatus = '-';
-  const sleepStatus = '-';
 
   return (
     <div className="h-full w-full overflow-auto p-4">
@@ -237,71 +228,12 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
 
           <Card className="bg-card shadow-xl border-2 border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30 rounded-2xl overflow-hidden">
             <CardHeader className="bg-gradient-to-r from-[#9ADBC6]/10 to-[#FFC98B]/10 dark:from-[#9ADBC6]/20 dark:to-[#FFC98B]/20 border-b border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30">
-              <CardTitle className="flex items-center justify-between text-[#9ADBC6]">
+              <CardTitle className="text-[#9ADBC6]">
                 <span>🤖 {t('home.aiInsights')}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={onOpenChat}
-                  className="text-[#9ADBC6] hover:bg-[#9ADBC6]/10 dark:hover:bg-[#9ADBC6]/20 h-8"
-                >
-                  <Bot className="h-4 w-4 mr-1" />
-                  <span className="text-xs">{t('home.chat')}</span>
-                </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              {aiInsights.length > 0 ? (
-                aiInsights.map((insight, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg bg-gradient-to-r from-[#9ADBC6]/5 to-[#FFC98B]/5 dark:from-[#9ADBC6]/10 dark:to-[#FFC98B]/10 border border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${
-                          insight.type === 'Doctor AI'
-                            ? 'bg-[#6AA6FF]/10 text-[#6AA6FF] dark:bg-[#6AA6FF]/20'
-                            : 'bg-[#FFC98B]/20 text-[#FFC98B] dark:bg-[#FFC98B]/30'
-                        }`}
-                      >
-                        {insight.type}
-                      </Badge>
-                      <span className="text-xs text-[#A5A5A5] dark:text-[#A5A5A5]">{insight.time}</span>
-                    </div>
-                    <p className="text-sm text-[#F3F3F3] dark:text-[#F3F3F3]">{insight.message}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-                  {language === 'ko' ? 'AI 인사이트가 없습니다' : 'No AI insights yet'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-card border-[#6AA6FF]/30">
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-6 w-6 mx-auto mb-2 text-[#6AA6FF]" />
-              <p className="text-xs text-[#CFCFCF] dark:text-[#CFCFCF]">{t('home.growth')}</p>
-              <p className="text-[#6AA6FF] dark:text-[#8BC5FF]">{growthStatus}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-[#FFC98B]/30">
-            <CardContent className="p-4 text-center">
-              <Heart className="h-6 w-6 mx-auto mb-2 text-[#FFC98B]" />
-              <p className="text-xs text-[#CFCFCF] dark:text-[#CFCFCF]">{t('home.health')}</p>
-              <p className="text-[#FFC98B] dark:text-[#FFD8A8]">{healthStatus}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-[#9ADBC6]/30">
-            <CardContent className="p-4 text-center">
-              <Moon className="h-6 w-6 mx-auto mb-2 text-[#9ADBC6]" />
-              <p className="text-xs text-[#CFCFCF] dark:text-[#CFCFCF]">{t('home.sleep')}</p>
-              <p className="text-[#9ADBC6] dark:text-[#B5E8D8]">{sleepStatus}</p>
+            <CardContent className="p-4">
+              {/* 내용은 비워둠 */}
             </CardContent>
           </Card>
         </div>
