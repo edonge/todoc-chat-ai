@@ -146,7 +146,7 @@ export interface ChatMessageResponse {
 }
 
 // ============ Community Types ============
-export type CommunityCategory = 'recipes' | 'tips' | 'talk';
+export type CommunityCategory = 'general' | 'marketplace' | 'recipe';
 
 export interface PostCreate {
   kid_id?: number;

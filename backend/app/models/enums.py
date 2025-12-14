@@ -54,8 +54,7 @@ class SenderTypeEnum(PyEnum):
     user = "user"
     ai = "ai"
 
-
 class CommunityCategoryEnum(PyEnum):
-    recipes = "recipes"
-    tips = "tips"
-    talk = "talk"
+    general = "general"
+    marketplace = "marketplace"
+    recipe = "recipe"
