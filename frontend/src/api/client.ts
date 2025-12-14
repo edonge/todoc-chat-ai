@@ -2,6 +2,7 @@
  * API Client for Todoc Backend
  * Base configuration and utilities for API calls
  */
+import useAuthStore from '@/store/useAuthStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -13,25 +14,9 @@ interface ApiError {
 
 class ApiClient {
   private baseUrl: string;
-  private token: string | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-    // Load token from localStorage on init
-    this.token = localStorage.getItem('access_token');
-  }
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('access_token', token);
-    } else {
-      localStorage.removeItem('access_token');
-    }
-  }
-
-  getToken(): string | null {
-    return this.token;
   }
 
   private async request<T>(
@@ -39,14 +24,15 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = useAuthStore.getState().token;
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (this.token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -56,6 +42,10 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Unauthorized, clear token and log out
+          useAuthStore.getState().logout();
+        }
         const errorData = await response.json().catch(() => ({}));
         const error: ApiError = {
           message: errorData.detail || `HTTP error! status: ${response.status}`,
@@ -73,6 +63,10 @@ class ApiClient {
 
       return JSON.parse(text);
     } catch (error) {
+      if ((error as ApiError).status === 401) {
+        // Unauthorized, clear token and log out
+        useAuthStore.getState().logout();
+      }
       if ((error as ApiError).status) {
         throw error;
       }
@@ -120,10 +114,11 @@ class ApiClient {
   // File upload with multipart/form-data
   async uploadFile<T>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = useAuthStore.getState().token;
 
     const headers: HeadersInit = {};
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(url, {
@@ -134,6 +129,10 @@ class ApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        // Unauthorized, clear token and log out
+        useAuthStore.getState().logout();
+      }
       throw {
         message: errorData.detail || `HTTP error! status: ${response.status}`,
         status: response.status,

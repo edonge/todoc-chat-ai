@@ -63,9 +63,30 @@ export default function ChatScreen() {
       name: 'New Conversation',
       lastMessage: '',
       timestamp: new Date(),
-      doctorMessages: [],
-      momMessages: [],
-      nutritionistMessages: [],
+      doctorMessages: [
+        {
+          id: '1',
+          role: 'ai',
+          content: 'Hello! I\'m Doctor AI. Feel free to ask anything about your baby\'s health and development. 📊 I can provide personalized answers based on your recorded data.',
+          timestamp: new Date(),
+        },
+      ],
+      momMessages: [
+        {
+          id: '1',
+          role: 'ai',
+          content: 'Hello! I\'m Mom AI. I\'m here to share parenting experiences and know-how. Do you have any questions? 💡 I can offer advice based on your recorded parenting data.',
+          timestamp: new Date(),
+        },
+      ],
+      nutritionistMessages: [
+        {
+          id: '1',
+          role: 'ai',
+          content: 'Hello! I\'m Nutritionist AI. I can help with baby food recipes, nutritional balance, and eating habits. 🥗 Ask me anything about your baby\'s diet!',
+          timestamp: new Date(),
+        },
+      ],
     },
   ]);
   const [inputValue, setInputValue] = useState('');

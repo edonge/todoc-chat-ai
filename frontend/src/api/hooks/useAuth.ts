@@ -4,8 +4,10 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '../client';
 import type { UserCreate, UserLogin, UserResponse, Token } from '../types';
+import useAuthStore from '@/store/useAuthStore';
 
 export function useAuth() {
+  const { login: storeLogin, logout: storeLogout, isAuthenticated } = useAuthStore();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export function useAuth() {
       const token: Token = await response.json();
       apiClient.setToken(token.access_token);
       localStorage.setItem('refresh_token', token.refresh_token);
+      storeLogin(token.access_token);
 
       // Fetch user info
       const userInfo = await apiClient.get<UserResponse>('/api/v1/auth/me');
@@ -64,13 +67,14 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [storeLogin]);
 
   const logout = useCallback(() => {
     apiClient.setToken(null);
     localStorage.removeItem('refresh_token');
     setUser(null);
-  }, []);
+    storeLogout();
+  }, [storeLogout]);
 
   const fetchCurrentUser = useCallback(async () => {
     if (!apiClient.getToken()) return null;
@@ -99,12 +103,13 @@ export function useAuth() {
       });
       apiClient.setToken(response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);
+      storeLogin(response.access_token);
       return true;
     } catch {
       logout();
       return false;
     }
-  }, [logout]);
+  }, [logout, storeLogin]);
 
   return {
     user,
@@ -115,6 +120,6 @@ export function useAuth() {
     logout,
     fetchCurrentUser,
     refreshToken,
-    isAuthenticated: !!apiClient.getToken(),
+    isAuthenticated,
   };
 }

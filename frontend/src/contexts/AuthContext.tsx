@@ -4,10 +4,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { apiClient } from '@/api/client';
 import type { UserResponse, Token } from '@/api/types';
+import useAuthStore from '@/store/useAuthStore';
 
 interface AuthContextType {
   user: UserResponse | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string, nickname?: string) => Promise<void>;
@@ -18,30 +18,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { login: storeLogin, logout: storeLogout, init: initAuthStore } = useAuthStore();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 앱 시작 시 토큰 확인 및 사용자 정보 로드
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('access_token');
+      initAuthStore(); // Initialize store from localStorage
+      const token = useAuthStore.getState().token;
       if (token) {
-        apiClient.setToken(token);
         try {
           const userInfo = await apiClient.get<UserResponse>('/api/v1/auth/me');
           setUser(userInfo);
         } catch (error) {
           // 토큰 만료 등의 이유로 실패하면 로그아웃
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          apiClient.setToken(null);
+          storeLogout();
         }
       }
       setIsLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [initAuthStore, storeLogout]);
 
   const login = useCallback(async (username: string, password: string) => {
     const response = await apiClient.post<Token>('/api/v1/auth/login', {
@@ -49,14 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
 
-    apiClient.setToken(response.access_token);
-    localStorage.setItem('access_token', response.access_token);
+    storeLogin(response.access_token);
     localStorage.setItem('refresh_token', response.refresh_token);
 
     // 사용자 정보 가져오기
     const userInfo = await apiClient.get<UserResponse>('/api/v1/auth/me');
     setUser(userInfo);
-  }, []);
+  }, [storeLogin]);
 
   const signup = useCallback(async (username: string, password: string, nickname?: string) => {
     await apiClient.post<UserResponse>('/api/v1/auth/signup', {
@@ -69,15 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [login]);
 
   const logout = useCallback(() => {
-    apiClient.setToken(null);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('selected_kid_id');
     setUser(null);
-  }, []);
+    storeLogout();
+  }, [storeLogout]);
 
   const refreshUser = useCallback(async () => {
-    if (!apiClient.getToken()) return;
+    const token = useAuthStore.getState().token;
+    if (!token) return;
     try {
       const userInfo = await apiClient.get<UserResponse>('/api/v1/auth/me');
       setUser(userInfo);
@@ -90,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
         isLoading,
         login,
         signup,

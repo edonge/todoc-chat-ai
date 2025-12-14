@@ -14,9 +14,11 @@ import ChildRegistrationScreen from './screens/ChildRegistration/ChildRegistrati
 import { Toaster } from './components/ui/sonner';
 import { useAuthContext } from './contexts/AuthContext';
 import { hasChildRegistered, getChildren } from './services/api/childService';
+import useAuthStore from './store/useAuthStore';
 
 export default function App() {
-  const { isAuthenticated, isLoading: authLoading, logout } = useAuthContext();
+  const { isLoading: authLoading, logout } = useAuthContext();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
@@ -46,6 +48,9 @@ export default function App() {
         } finally {
           setIsCheckingOnboarding(false);
         }
+      } else if (!isAuthenticated) {
+        // 로그아웃 시 온보딩 상태 초기화
+        setHasCompletedOnboarding(null);
       }
     };
 
