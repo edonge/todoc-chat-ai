@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, Camera } from 'lucide-react';
+import { Plus, Camera, Lightbulb } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getChildren, uploadChildPhoto } from '@/services/api/childService';
+import { getRandomTip } from '@/services/api/dailyTipService';
 
 interface HomeScreenProps {
   onAddRecord: () => void;
@@ -20,6 +21,8 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
   const [babyGender, setBabyGender] = useState<'male' | 'female' | null>(null);
   const [babyBirthDate, setBabyBirthDate] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [dailyTip, setDailyTip] = useState<string | null>(null);
+  const [isTipLoading, setIsTipLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const adjectives = ['Wonderful', 'Cute', 'Lovely', 'Pretty', 'Smart', 'Healthy', 'Brave', 'Bright', 'Angelic', 'Precious'];
@@ -51,6 +54,24 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
     };
     fetchChildInfo();
   }, []);
+
+  // 데일리 팁 가져오기 (홈화면 접속 시마다)
+  useEffect(() => {
+    const fetchDailyTip = async () => {
+      setIsTipLoading(true);
+      try {
+        const tipLanguage = language === 'ko' ? 'kor' : 'eng';
+        const tip = await getRandomTip(tipLanguage);
+        setDailyTip(tip?.content || null);
+      } catch (error) {
+        console.error('Error fetching daily tip:', error);
+        setDailyTip(null);
+      } finally {
+        setIsTipLoading(false);
+      }
+    };
+    fetchDailyTip();
+  }, [language]);
 
   // 나이 계산
   const calculateAge = () => {
@@ -227,13 +248,26 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
           </Card>
 
           <Card className="bg-card shadow-xl border-2 border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-[#9ADBC6]/10 to-[#FFC98B]/10 dark:from-[#9ADBC6]/20 dark:to-[#FFC98B]/20 border-b border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30">
-              <CardTitle className="text-[#9ADBC6]">
-                <span>🤖 {t('home.aiInsights')}</span>
+            <CardHeader className="bg-gradient-to-r from-[#9ADBC6]/10 to-[#FFC98B]/10 dark:from-[#9ADBC6]/20 dark:to-[#FFC98B]/20 border-b border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30 px-4 py-4">
+              <CardTitle className="text-[#9ADBC6] flex items-center gap-2 text-base">
+                <Lightbulb className="h-5 w-5" />
+                <span>{language === 'ko' ? 'Todoc의 조언' : "Todoc's Advice"}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              {/* 내용은 비워둠 */}
+              {isTipLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-5 h-5 border-2 border-[#9ADBC6] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : dailyTip ? (
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  {dailyTip}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  {language === 'ko' ? '오늘의 팁을 불러올 수 없습니다.' : 'Unable to load today\'s tip.'}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

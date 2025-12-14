@@ -26,3 +26,4 @@ from .enums import (
 from .post import Post
 from .comment import Comment
 from .post_like import PostLike
+from .daily_tip import DailyTip

@@ -3,13 +3,12 @@ from pathlib import Path
 from typing import List, Tuple
 
 import faiss
-import torch
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
 
-DEFAULT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
 
 
 def _clean_text(text: str) -> str:
@@ -24,34 +23,8 @@ def _clean_text(text: str) -> str:
     return " ".join(cleaned.split())
 
 
-def _ensure_sdp_kernel_attrs() -> None:
-    """
-    Transformers 4.46+ expects torch.backends.cuda.sdp_kernel to expose several
-    attributes. The CPU-only torch build exposes it as a plain function, so we
-    attach the missing attributes to avoid AttributeError during model init.
-    """
-    sdp_kernel = getattr(torch.backends.cuda, "sdp_kernel", None)
-    if sdp_kernel is None:
-        return
-
-    for attr, value in [
-        ("require_contiguous_qkv", False),
-        ("enable_flash", False),
-        ("enable_mem_efficient", False),
-        ("enable_math", True),
-    ]:
-        if not hasattr(sdp_kernel, attr):
-            setattr(sdp_kernel, attr, value)
-
-
-def _rebuild_embedder(store: FAISS) -> HuggingFaceEmbeddings:
-    _ensure_sdp_kernel_attrs()
-    model_name = getattr(store.embedding_function, "model_name", DEFAULT_MODEL_NAME)
-    encode_kwargs = getattr(store.embedding_function, "encode_kwargs", None)
-    if not encode_kwargs:
-        encode_kwargs = {"normalize_embeddings": True}
-
-    return HuggingFaceEmbeddings(model_name=model_name, encode_kwargs=encode_kwargs)
+def _get_openai_embedder() -> OpenAIEmbeddings:
+    return OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
 
 
 def load_faiss_store(path: Path) -> FAISS:
@@ -64,8 +37,8 @@ def load_faiss_store(path: Path) -> FAISS:
     if not isinstance(store, FAISS):
         raise TypeError(f"Unexpected vector store type: {type(store)} for {path}")
 
-    # Ensure embedding function loads in this runtime with safe attention settings.
-    store.embedding_function = _rebuild_embedder(store)
+    # Use OpenAI embeddings for query embedding
+    store.embedding_function = _get_openai_embedder()
     return store
 
 
