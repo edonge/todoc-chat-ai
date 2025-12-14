@@ -36,3 +36,6 @@ Thumbs.db
 
 # Static files (user-uploaded content)
 /static/uploads/
+
+backend/app/rag/vector_db/*.pkl
+pdf/*.pdf
