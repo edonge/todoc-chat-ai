@@ -1,12 +1,5 @@
-import { Settings, ChevronDown, Moon, Sun, Globe, HelpCircle, Sliders, LogOut } from 'lucide-react';
+import { Settings, Moon, Sun, Globe, HelpCircle, Sliders, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,15 +11,13 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeaderProps {
-  selectedBaby: string;
-  onBabyChange: (value: string) => void;
   onSettingsClick: () => void;
   onLogout?: () => void;
   isDarkMode: boolean;
   onDarkModeToggle: (enabled: boolean) => void;
 }
 
-export default function Header({ selectedBaby, onBabyChange, onSettingsClick, onLogout, isDarkMode, onDarkModeToggle }: HeaderProps) {
+export default function Header({ onSettingsClick, onLogout, isDarkMode, onDarkModeToggle }: HeaderProps) {
   const { language, setLanguage, t } = useLanguage();
 
   const handleDarkModeToggle = () => {
@@ -64,17 +55,6 @@ export default function Header({ selectedBaby, onBabyChange, onSettingsClick, on
         </div>
         <h1 className="text-[#6AA6FF] dark:text-[#9ADBC6]">ToDoc</h1>
       </div>
-
-      <Select value={selectedBaby} onValueChange={onBabyChange}>
-        <SelectTrigger className="w-[140px] border-[#6AA6FF]/30 dark:border-[#9ADBC6]/30 bg-card text-foreground">
-          <SelectValue placeholder={t('header.selectBaby')} />
-        </SelectTrigger>
-        <SelectContent className="bg-popover border-border">
-          <SelectItem value="1">{t('header.firstChild')}</SelectItem>
-          <SelectItem value="2">{t('header.secondChild')}</SelectItem>
-          <SelectItem value="3">{t('header.thirdChild')}</SelectItem>
-        </SelectContent>
-      </Select>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

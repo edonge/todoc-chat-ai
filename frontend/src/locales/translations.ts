@@ -3,10 +3,6 @@ export const translations = {
     // Header
     'header.settings': '설정',
     'header.logout': '로그아웃',
-    'header.selectBaby': '아기 선택',
-    'header.firstChild': '첫째',
-    'header.secondChild': '둘째',
-    'header.thirdChild': '셋째',
 
     // Navigation
     'nav.home': '홈',
@@ -223,10 +219,6 @@ export const translations = {
     // Header
     'header.settings': 'Settings',
     'header.logout': 'Logout',
-    'header.selectBaby': 'Select Baby',
-    'header.firstChild': 'First Child',
-    'header.secondChild': 'Second Child',
-    'header.thirdChild': 'Third Child',
 
     // Navigation
     'nav.home': 'Home',

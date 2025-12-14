@@ -54,6 +54,7 @@ class SenderTypeEnum(PyEnum):
     user = "user"
     ai = "ai"
 
+
 class CommunityCategoryEnum(PyEnum):
     general = "general"
     marketplace = "marketplace"

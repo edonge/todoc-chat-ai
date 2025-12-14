@@ -164,8 +164,6 @@ export default function App() {
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <Header
-        selectedBaby={selectedBaby}
-        onBabyChange={setSelectedBaby}
         onSettingsClick={handleSettingsClick}
         onLogout={handleLogout}
         isDarkMode={isDarkMode}
