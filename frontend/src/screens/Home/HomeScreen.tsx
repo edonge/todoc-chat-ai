@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getChildren } from '@/services/api/childService';
+import { getChildren, uploadChildPhoto } from '@/services/api/childService';
 
 interface HomeScreenProps {
   onAddRecord: () => void;
@@ -15,10 +15,12 @@ interface HomeScreenProps {
 
 export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps) {
   const { t, language } = useLanguage();
+  const [babyId, setBabyId] = useState<number | null>(null);
   const [babyName, setBabyName] = useState('');
   const [babyPhoto, setBabyPhoto] = useState('');
   const [babyGender, setBabyGender] = useState<'male' | 'female' | null>(null);
   const [babyBirthDate, setBabyBirthDate] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const adjectives = ['Wonderful', 'Cute', 'Lovely', 'Pretty', 'Smart', 'Healthy', 'Brave', 'Bright', 'Angelic', 'Precious'];
@@ -34,9 +36,15 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
         const children = await getChildren();
         if (children && children.length > 0) {
           const child = children[0];
+          setBabyId(child.id);
           setBabyName(child.name);
           setBabyGender(child.gender as 'male' | 'female');
           setBabyBirthDate(child.birth_date);
+          if (child.image_url) {
+            // API URL과 이미지 경로 조합
+            const apiUrl = (import.meta as any).env?.VITE_API_URL || '';
+            setBabyPhoto(apiUrl + child.image_url);
+          }
         }
       } catch (error) {
         console.error('Error fetching child info:', error);
@@ -71,14 +79,29 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
     fileInputRef.current?.click();
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBabyPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file && babyId) {
+      setIsUploading(true);
+      try {
+        // 먼저 미리보기 표시
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setBabyPhoto(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // 서버에 업로드
+        const updatedKid = await uploadChildPhoto(babyId, file);
+        if (updatedKid.image_url) {
+          const apiUrl = (import.meta as any).env?.VITE_API_URL || '';
+          setBabyPhoto(apiUrl + updatedKid.image_url);
+        }
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -139,12 +162,17 @@ export default function HomeScreen({ onAddRecord, onOpenChat }: HomeScreenProps)
                     ref={fileInputRef}
                     onChange={handlePhotoChange}
                     accept="image/*"
-                    className="hidden"
+                    style={{ display: 'none', visibility: 'hidden', position: 'absolute', width: 0, height: 0 }}
                   />
                   <div
                     onClick={handlePhotoClick}
-                    className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#6AA6FF]/20 shadow-md cursor-pointer hover:border-[#6AA6FF]/50 transition-colors flex items-center justify-center bg-gray-100 dark:bg-gray-700"
+                    className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#6AA6FF]/20 shadow-md cursor-pointer hover:border-[#6AA6FF]/50 transition-colors flex items-center justify-center bg-gray-100 dark:bg-gray-700 relative"
                   >
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
                     {babyPhoto ? (
                       <img
                         src={babyPhoto}

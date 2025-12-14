@@ -11,6 +11,7 @@ class Kid(Base):
     name = Column(String(50), nullable=False)
     birth_date = Column(Date, nullable=False)
     gender = Column(String(20))
+    image_url = Column(String(500), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now())
 

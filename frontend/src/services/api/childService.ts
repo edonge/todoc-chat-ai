@@ -56,3 +56,12 @@ export async function getChildById(kidId: number): Promise<KidResponse> {
 export async function deleteChild(kidId: number): Promise<void> {
   await apiClient.delete(`/api/v1/kids/${kidId}`);
 }
+
+/**
+ * 아이 사진 업로드
+ */
+export async function uploadChildPhoto(kidId: number, file: File): Promise<KidResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await apiClient.uploadFile<KidResponse>(`/api/v1/kids/${kidId}/photo`, formData);
+}

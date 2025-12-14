@@ -13,6 +13,7 @@ class KidUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     birth_date: Optional[date] = None
     gender: Optional[str] = Field(None, pattern="^(male|female)$")
+    image_url: Optional[str] = None
 
 
 class KidResponse(BaseModel):
@@ -21,6 +22,7 @@ class KidResponse(BaseModel):
     name: str
     birth_date: date
     gender: str
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

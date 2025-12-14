@@ -47,8 +47,9 @@ export interface KidResponse {
   name: string;
   birth_date: string;
   gender: string | null;
-  created_at: string;
-  updated_at: string;
+  image_url: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ============ Record Types ============
