@@ -20,7 +20,7 @@ export async function registerChild(childData: ChildRegistrationData): Promise<K
     gender: childData.gender === 'boy' ? 'male' : 'female',
   };
 
-  return await apiClient.post<KidResponse>('/api/v1/kids', apiData);
+  return await apiClient.post<KidResponse>('/api/v1/kids/', apiData);
 }
 
 /**
