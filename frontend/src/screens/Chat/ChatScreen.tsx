@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Sparkles, Plus, ChevronDown, Utensils, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getChildren } from '@/services/api/childService';
+import {
+  getChatSessions,
+  createChatSession,
+  getChatSession,
+  sendMessage,
+  type AIModeType,
+} from '@/services/api/chatService';
+import type { ChatMessageResponse } from '@/api/types';
 
 // Hook to detect dark mode
 function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => 
+  const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   );
 
@@ -40,236 +49,261 @@ interface Message {
   role: 'user' | 'ai' | 'system';
   content: string;
   timestamp: Date;
+  aiModeId?: number | null;
 }
 
-interface ChatSession {
-  id: string;
+interface LocalSession {
+  id: number;
   name: string;
-  lastMessage: string;
-  timestamp: Date;
-  doctorMessages: Message[];
-  momMessages: Message[];
-  nutritionistMessages: Message[];
+  messages: Message[];
+  createdAt: Date;
 }
+
+const getInitialMessage = (agent: AIModeType): Message => {
+  const messages: Record<AIModeType, string> = {
+    doctor: "Hello! I'm Doctor AI. Feel free to ask anything about your baby's health and development. I can provide personalized answers based on your recorded data.",
+    mom: "Hello! I'm Mom AI. I'm here to share parenting experiences and know-how. Do you have any questions? I can offer advice based on your recorded parenting data.",
+    nutritionist: "Hello! I'm Nutritionist AI. I can help with baby food recipes, nutritional balance, and eating habits. Ask me anything about your baby's diet!",
+  };
+
+  return {
+    id: `init-${agent}`,
+    role: 'ai',
+    content: messages[agent],
+    timestamp: new Date(),
+  };
+};
 
 export default function ChatScreen() {
   const { t } = useLanguage();
   const isDark = useDarkMode();
-  const [activeAgent, setActiveAgent] = useState<'doctor' | 'mom' | 'nutritionist'>('doctor');
-  const [currentSessionId, setCurrentSessionId] = useState('1');
-  const [sessions, setSessions] = useState<ChatSession[]>([
-    {
-      id: '1',
-      name: 'New Conversation',
-      lastMessage: '',
-      timestamp: new Date(),
-      doctorMessages: [
-        {
-          id: '1',
-          role: 'ai',
-          content: 'Hello! I\'m Doctor AI. Feel free to ask anything about your baby\'s health and development. 📊 I can provide personalized answers based on your recorded data.',
-          timestamp: new Date(),
-        },
-      ],
-      momMessages: [
-        {
-          id: '1',
-          role: 'ai',
-          content: 'Hello! I\'m Mom AI. I\'m here to share parenting experiences and know-how. Do you have any questions? 💡 I can offer advice based on your recorded parenting data.',
-          timestamp: new Date(),
-        },
-      ],
-      nutritionistMessages: [
-        {
-          id: '1',
-          role: 'ai',
-          content: 'Hello! I\'m Nutritionist AI. I can help with baby food recipes, nutritional balance, and eating habits. 🥗 Ask me anything about your baby\'s diet!',
-          timestamp: new Date(),
-        },
-      ],
-    },
-  ]);
+  const [activeAgent, setActiveAgent] = useState<AIModeType>('doctor');
+  const [kidId, setKidId] = useState<number | null>(null);
+  const [sessions, setSessions] = useState<LocalSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([getInitialMessage('doctor')]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const currentSession = sessions.find((s) => s.id === currentSessionId);
-  const currentMessages = currentSession
-    ? (activeAgent === 'doctor' ? currentSession.doctorMessages
-      : activeAgent === 'mom' ? currentSession.momMessages
-        : currentSession.nutritionistMessages)
-    : [];
+  // 아이 정보 로드
+  useEffect(() => {
+    const loadKidInfo = async () => {
+      try {
+        const children = await getChildren();
+        if (children && children.length > 0) {
+          setKidId(children[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading kid info:', error);
+      }
+    };
+    loadKidInfo();
+  }, []);
 
+  // 세션 목록 로드
+  useEffect(() => {
+    if (!kidId) return;
+
+    const loadSessions = async () => {
+      setIsLoading(true);
+      try {
+        const apiSessions = await getChatSessions(kidId);
+        const localSessions: LocalSession[] = apiSessions.map((s, idx) => ({
+          id: s.id,
+          name: `Conversation ${apiSessions.length - idx}`,
+          messages: [],
+          createdAt: new Date(s.created_at),
+        }));
+
+        if (localSessions.length > 0) {
+          setSessions(localSessions);
+          setCurrentSessionId(localSessions[0].id);
+          // 첫 번째 세션의 메시지 로드
+          await loadSessionMessages(localSessions[0].id);
+        } else {
+          // 세션이 없으면 새로 생성
+          await handleNewSession();
+        }
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+        // 에러 시 로컬 세션으로 시작
+        setMessages([getInitialMessage(activeAgent)]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, [kidId]);
+
+  // 세션 메시지 로드
+  const loadSessionMessages = useCallback(async (sessionId: number) => {
+    try {
+      const session = await getChatSession(sessionId);
+      if (session.messages && session.messages.length > 0) {
+        const loadedMessages: Message[] = session.messages.map((msg: ChatMessageResponse) => ({
+          id: msg.id.toString(),
+          role: msg.sender === 'user' ? 'user' : 'ai',
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+          aiModeId: msg.ai_mode_id,
+        }));
+        setMessages(loadedMessages);
+      } else {
+        // 메시지가 없으면 초기 메시지 표시
+        setMessages([getInitialMessage(activeAgent)]);
+      }
+    } catch (error) {
+      console.error('Error loading session messages:', error);
+      setMessages([getInitialMessage(activeAgent)]);
+    }
+  }, [activeAgent, t]);
+
+  // 스크롤 자동 이동
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [currentMessages, activeAgent, currentSessionId]);
+  }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+  // 에이전트 변경 시 초기 메시지 업데이트 (새 세션이거나 메시지가 없을 때)
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].id.startsWith('init-')) {
+      setMessages([getInitialMessage(activeAgent)]);
+    }
+  }, [activeAgent, t]);
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: inputValue,
-      timestamp: new Date(),
-    };
+  // 새 세션 생성
+  const handleNewSession = async () => {
+    if (!kidId) {
+      toast.error('Please register a child first');
+      return;
+    }
 
-    updateSessionMessages(userMessage);
-
-    const questionText = inputValue;
-    setInputValue('');
-
-    const thinkingMessage: Message = {
-      id: (Date.now() + 0.5).toString(),
-      role: 'ai',
-      content: '🤔 Preparing your answer...',
-      timestamp: new Date(),
-    };
-
-    updateSessionMessages(thinkingMessage);
-
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'ai',
-        content: getAIResponse(questionText, activeAgent),
-        timestamp: new Date(),
+    try {
+      const newSession = await createChatSession(kidId);
+      const localSession: LocalSession = {
+        id: newSession.id,
+        name: `Conversation ${sessions.length + 1}`,
+        messages: [],
+        createdAt: new Date(newSession.created_at),
       };
 
-      setSessions((prevSessions) =>
-        prevSessions.map((session) => {
-          if (session.id === currentSessionId) {
-            const messageKey = activeAgent === 'doctor' ? 'doctorMessages'
-              : activeAgent === 'mom' ? 'momMessages'
-                : 'nutritionistMessages';
-
-            const messages = [...session[messageKey]];
-            messages[messages.length - 1] = aiMessage;
-
-            return {
-              ...session,
-              [messageKey]: messages,
-              lastMessage: aiMessage.content,
-            };
-          }
-          return session;
-        })
-      );
-    }, 1000);
+      setSessions((prev) => [localSession, ...prev]);
+      setCurrentSessionId(newSession.id);
+      setMessages([getInitialMessage(activeAgent)]);
+      toast.success('New conversation started');
+    } catch (error) {
+      console.error('Error creating session:', error);
+      toast.error('Failed to create new conversation');
+    }
   };
 
-  const updateSessionMessages = (newMessage: Message) => {
-    setSessions((prevSessions) =>
-      prevSessions.map((session) => {
-        if (session.id === currentSessionId) {
-          const messageKey = activeAgent === 'doctor' ? 'doctorMessages'
-            : activeAgent === 'mom' ? 'momMessages'
-              : 'nutritionistMessages';
-
-          return {
-            ...session,
-            [messageKey]: [...session[messageKey], newMessage],
-            lastMessage: newMessage.role === 'user' ? newMessage.content : session.lastMessage,
-          };
-        }
-        return session;
-      })
-    );
+  // 세션 변경
+  const handleSessionChange = async (sessionId: number) => {
+    setCurrentSessionId(sessionId);
+    await loadSessionMessages(sessionId);
   };
 
+  // 메시지 전송
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !currentSessionId || isSending) return;
+
+    const userMessageContent = inputValue;
+    setInputValue('');
+
+    // 사용자 메시지 즉시 표시
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: userMessageContent,
+      timestamp: new Date(),
+    };
+
+    // 로딩 메시지 표시
+    const loadingMessage: Message = {
+      id: `loading-${Date.now()}`,
+      role: 'ai',
+      content: '🤔 Thinking...',
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => {
+      // 초기 메시지만 있으면 제거
+      const filtered = prev.filter((m) => !m.id.startsWith('init-'));
+      return [...filtered, userMessage, loadingMessage];
+    });
+
+    setIsSending(true);
+
+    try {
+      const aiResponse = await sendMessage(currentSessionId, userMessageContent, activeAgent);
+
+      // 로딩 메시지를 실제 응답으로 교체
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => !m.id.startsWith('loading-'));
+        return [
+          ...filtered,
+          {
+            id: aiResponse.id.toString(),
+            role: 'ai',
+            content: aiResponse.content,
+            timestamp: new Date(aiResponse.created_at),
+            aiModeId: aiResponse.ai_mode_id,
+          },
+        ];
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // 로딩 메시지를 에러 메시지로 교체
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => !m.id.startsWith('loading-'));
+        return [
+          ...filtered,
+          {
+            id: `error-${Date.now()}`,
+            role: 'ai',
+            content: 'Sorry, I encountered an error. Please try again.',
+            timestamp: new Date(),
+          },
+        ];
+      });
+      toast.error('Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // 기록 가져오기
   const handleImportRecord = () => {
     const systemMessage: Message = {
-      id: Date.now().toString(),
+      id: `system-${Date.now()}`,
       role: 'system',
       content: '✅ Successfully imported the latest growth and health records. The AI will now answer based on this data.',
       timestamp: new Date(),
     };
-    updateSessionMessages(systemMessage);
+    setMessages((prev) => [...prev, systemMessage]);
     toast.success('Records imported to context');
   };
 
-  const getAIResponse = (question: string, agent: 'doctor' | 'mom' | 'nutritionist'): string => {
-    const lowerQuestion = question.toLowerCase();
+  const currentSession = sessions.find((s) => s.id === currentSessionId);
 
-    if (agent === 'nutritionist') {
-      if (lowerQuestion.includes('recipe') || lowerQuestion.includes('food')) {
-        return 'Here is a nutritious recipe for your baby! 🥣\n\n**Beef and Broccoli Porridge**\n- Ingredients: 30g Beef, 20g Broccoli, 50g Rice\n- Instructions: Boil the beef and chop finely. Steam broccoli and mash. Cook with rice until soft.\n\nThis meal is rich in iron and vitamins!';
-      }
-      if (lowerQuestion.includes('allergy')) {
-        return 'Common allergens include eggs, milk, peanuts, and shellfish. Introduce these one by one and wait 3 days to check for reactions.';
-      }
-      return 'I can help with meal plans, recipes, and nutritional advice. What would you like to know?';
-    }
+  const quickQuestions =
+    activeAgent === 'doctor'
+      ? ['Is a temperature of 37.5°C okay?', "My baby's sleep pattern is irregular", 'When should I start solid foods?']
+      : activeAgent === 'mom'
+        ? ['How do I do sleep training?', 'What if my baby refuses solid food?', 'How to relieve parenting stress']
+        : ['Iron-rich recipes?', 'Baby food schedule', 'Allergy check list'];
 
-    if (agent === 'doctor') {
-      if (lowerQuestion.includes('temperature') || lowerQuestion.includes('37') || lowerQuestion.includes('38')) {
-        return 'That\'s a great question. 👩‍⚕️\nAs Doctor AI, I will explain the condition from a medical perspective.\n\nIf the temperature is 37.5°C and the child has been crying for hours, it is a situation that requires immediate and careful observation. A slight fever alone is not an emergency, but prolonged crying can be a sign of pain, discomfort, early infection, or dehydration.';
-      }
-      if (lowerQuestion.includes('sleep') || lowerQuestion.includes('irregular')) {
-        return 'I\'ll speak based on an 8-month-old baby.\nAt this age, babies are very active and their naps decrease, so irregular sleep patterns are a very common issue.\n\nTotal sleep time: 13-15 hours a day\nNight sleep: Usually sleeps around 8-9 PM and wakes up around 6-7 AM\n\nTry creating a consistent sleep routine and adjusting nap times.';
-      }
-      if (lowerQuestion.includes('solid food') || lowerQuestion.includes('start')) {
-        return 'The Korean Pediatric Society and WHO recommend starting solid foods between 4-6 months of age, with the most ideal time being around 6 months of age. Start slowly with one ingredient at a time, and carefully watch for allergic reactions.';
-      }
-      return 'If you tell me more about the symptoms you are curious about, I can give you a more accurate answer. Please refer to records such as temperature, sleep patterns, and meal amounts.';
-    }
-
-    if (agent === 'mom') {
-      if (lowerQuestion.includes('sleep training')) {
-        return 'I\'m Mom AI, and I\'ll talk to you from a mother\'s heart.\n\n💬 **What is Sleep Training?**\n\n"Sleep training" is a process of "helping them develop the power to fall asleep on their own."\n\n🌜 **1. Tidy up the daily routine before bedtime**\nBath → Feeding → Dim lights → Lullaby → Hug → Put to bed\n\n🌙 **2. Put them down before they are fully asleep**\nThis is the hardest part, but try to put the baby down when they are drowsy.\n\n💖 **A word from Mom AI**\n"Sleep training is not a war, it\'s \'trust training\'."';
-      }
-      if (lowerQuestion.includes('solid food') && (lowerQuestion.includes('refuse') || lowerQuestion.includes('not') || lowerQuestion.includes('eat'))) {
-        return 'It\'s so upsetting when that happens 😢\nAs Mom AI, I know that feeling all too well.\nBut it\'s okay — refusing solid food at this stage is a part of development that almost every baby goes through.\n\nTry changing the texture, temperature, or utensils. Don\'t force-feed, show them a "joyful table". Once the baby regains interest in food, they\'ll start eating well.';
-      }
-      if (lowerQuestion.includes('stress') || lowerQuestion.includes('hard') || lowerQuestion.includes('tired')) {
-        return '💬 "Is there a way to relieve parenting stress?"\n\n🌤️ **1. It\'s enough to be a "good enough mom," not a "perfect mom"**\nThere\'s no such thing as perfect parenting.\n\n🫖 **2. Make a very short \'me time\'**\nEven 10 minutes is fine. Have a cup of coffee while the baby naps ☕\n\n💬 **3. Be sure to \'voice\' your feelings**\nParenting can be isolating. Share your feelings with others.\n\n💞 **4. And also... come to the ToDoc community**\nYou\'ll find real moms who have struggled just like you.';
-      }
-      return 'I\'m Mom AI, and I\'ll talk to you from a mother\'s heart. What\'s on your mind?';
-    }
-
-    return "I'm here to help!";
-  };
-
-  const quickQuestions = activeAgent === 'doctor'
-    ? ['Is a temperature of 37.5°C okay?', 'My baby\'s sleep pattern is irregular', 'When should I start solid foods?']
-    : activeAgent === 'mom'
-      ? ['How do I do sleep training?', 'What if my baby refuses solid food?', 'How to relieve parenting stress']
-      : ['Iron-rich recipes?', 'Baby food schedule', 'Allergy check list'];
-
-  const handleNewSession = () => {
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      name: `Conversation ${sessions.length + 1}`,
-      lastMessage: '',
-      timestamp: new Date(),
-      doctorMessages: [{
-        id: `${Date.now()}-doctor-init`,
-        role: 'ai',
-        content: 'Hello! I\'m Doctor AI. Feel free to ask anything about your baby\'s health. 📊',
-        timestamp: new Date(),
-      }],
-      momMessages: [{
-        id: `${Date.now()}-mom-init`,
-        role: 'ai',
-        content: 'Hello! I\'m Mom AI. I\'m here to share parenting experiences. 💡',
-        timestamp: new Date(),
-      }],
-      nutritionistMessages: [{
-        id: `${Date.now()}-nutri-init`,
-        role: 'ai',
-        content: 'Hello! I\'m Nutritionist AI. Ask me about baby food and nutrition! 🥗',
-        timestamp: new Date(),
-      }],
-    };
-    setSessions([newSession, ...sessions]);
-    setCurrentSessionId(newSession.id);
-    toast.success('New conversation started');
-  };
-
-  const handleSessionChange = (sessionId: string) => {
-    setCurrentSessionId(sessionId);
-  };
+  if (isLoading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#6AA6FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -290,12 +324,8 @@ export default function ChatScreen() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-[#6AA6FF]/30 text-xs sm:text-sm h-8 max-w-[70px] sm:max-w-[90px]"
-                  >
-                    <span className="truncate">{currentSession?.name}</span>
+                  <Button variant="outline" size="sm" className="border-[#6AA6FF]/30 text-xs sm:text-sm h-8 max-w-[70px] sm:max-w-[90px]">
+                    <span className="truncate">{currentSession?.name || 'New'}</span>
                     <ChevronDown className="h-3 w-3 ml-0.5 flex-shrink-0" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -312,11 +342,7 @@ export default function ChatScreen() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button
-                size="sm"
-                onClick={handleNewSession}
-                className="bg-[#6AA6FF] hover:bg-[#5a96ef] h-8 w-8 p-0"
-              >
+              <Button size="sm" onClick={handleNewSession} className="bg-[#6AA6FF] hover:bg-[#5a96ef] h-8 w-8 p-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -324,16 +350,12 @@ export default function ChatScreen() {
           <p className="text-sm text-[#CFCFCF] dark:text-[#CFCFCF]">{t('chat.subtitle')}</p>
         </div>
 
-        <Tabs value={activeAgent} onValueChange={(v: string) => setActiveAgent(v as any)} className="px-4">
+        <Tabs value={activeAgent} onValueChange={(v: string) => setActiveAgent(v as AIModeType)} className="px-4">
           <TabsList className="grid grid-cols-3 w-full bg-card/80 p-1 rounded-xl">
             <TabsTrigger
               value="doctor"
               className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors doctor-ai-tab"
-              style={
-                !isDark && activeAgent === 'doctor'
-                  ? { backgroundColor: '#6AA6FF', color: '#ffffff' }
-                  : undefined
-              }
+              style={!isDark && activeAgent === 'doctor' ? { backgroundColor: '#6AA6FF', color: '#ffffff' } : undefined}
             >
               <Bot className="h-3.5 w-3.5" style={!isDark && activeAgent === 'doctor' ? { color: '#ffffff' } : undefined} />
               <span style={!isDark && activeAgent === 'doctor' ? { color: '#ffffff' } : undefined}>{t('chat.doctor')}</span>
@@ -341,11 +363,7 @@ export default function ChatScreen() {
             <TabsTrigger
               value="mom"
               className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors mom-ai-tab"
-              style={
-                !isDark && activeAgent === 'mom'
-                  ? { backgroundColor: '#FFC98B', color: '#1f2937' }
-                  : undefined
-              }
+              style={!isDark && activeAgent === 'mom' ? { backgroundColor: '#FFC98B', color: '#1f2937' } : undefined}
             >
               <Sparkles className="h-3.5 w-3.5" style={!isDark && activeAgent === 'mom' ? { color: '#1f2937' } : undefined} />
               <span style={!isDark && activeAgent === 'mom' ? { color: '#1f2937' } : undefined}>{t('chat.mom')}</span>
@@ -353,11 +371,7 @@ export default function ChatScreen() {
             <TabsTrigger
               value="nutritionist"
               className="flex items-center gap-1.5 text-xs sm:text-sm rounded-lg transition-colors nutrition-ai-tab"
-              style={
-                !isDark && activeAgent === 'nutritionist'
-                  ? { backgroundColor: '#9ADBC6', color: '#ffffff' }
-                  : undefined
-              }
+              style={!isDark && activeAgent === 'nutritionist' ? { backgroundColor: '#9ADBC6', color: '#ffffff' } : undefined}
             >
               <Utensils className="h-3.5 w-3.5" style={!isDark && activeAgent === 'nutritionist' ? { color: '#ffffff' } : undefined} />
               <span style={!isDark && activeAgent === 'nutritionist' ? { color: '#ffffff' } : undefined}>{t('chat.nutrition')}</span>
@@ -366,7 +380,7 @@ export default function ChatScreen() {
         </Tabs>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {currentMessages.map((message) => (
+          {messages.map((message) => (
             <div
               key={message.id}
               className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'} ${message.role === 'system' ? 'justify-center' : ''}`}
@@ -377,11 +391,17 @@ export default function ChatScreen() {
                 </div>
               ) : (
                 <>
-                  <Avatar className={`h-8 w-8 ${message.role === 'user' ? 'bg-muted'
-                    : activeAgent === 'doctor' ? 'bg-[#6AA6FF]'
-                      : activeAgent === 'mom' ? 'bg-[#FFC98B]'
-                        : 'bg-[#9ADBC6]'
-                    }`}>
+                  <Avatar
+                    className={`h-8 w-8 ${
+                      message.role === 'user'
+                        ? 'bg-muted'
+                        : activeAgent === 'doctor'
+                          ? 'bg-[#6AA6FF]'
+                          : activeAgent === 'mom'
+                            ? 'bg-[#FFC98B]'
+                            : 'bg-[#9ADBC6]'
+                    }`}
+                  >
                     <AvatarFallback className="[&>*]:transition-colors">
                       {message.role === 'user' ? (
                         <User className="h-4 w-4 text-black dark:text-white" />
@@ -397,18 +417,18 @@ export default function ChatScreen() {
                     </AvatarFallback>
                   </Avatar>
                   <div
-                    className={`flex-1 max-w-[75%] rounded-2xl p-3 ${message.role === 'user'
-                      ? 'bg-[#6AA6FF] text-white'
-                      : activeAgent === 'doctor'
-                        ? 'bg-card border border-[#6AA6FF]/20 dark:border-[#6AA6FF]/30'
-                        : activeAgent === 'mom'
-                          ? 'bg-card border border-[#FFC98B]/20 dark:border-[#FFC98B]/30'
-                          : 'bg-card border border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30'
-                      }`}
+                    className={`flex-1 max-w-[75%] rounded-2xl p-3 ${
+                      message.role === 'user'
+                        ? 'bg-[#6AA6FF] text-white'
+                        : activeAgent === 'doctor'
+                          ? 'bg-card border border-[#6AA6FF]/20 dark:border-[#6AA6FF]/30'
+                          : activeAgent === 'mom'
+                            ? 'bg-card border border-[#FFC98B]/20 dark:border-[#FFC98B]/30'
+                            : 'bg-card border border-[#9ADBC6]/20 dark:border-[#9ADBC6]/30'
+                    }`}
                   >
                     <p
-                      className={`text-sm ${message.role === 'user' ? 'text-white' : 'text-[#F3F3F3] dark:text-[#F3F3F3]'
-                        }`}
+                      className={`text-sm ${message.role === 'user' ? 'text-white' : 'text-[#F3F3F3] dark:text-[#F3F3F3]'}`}
                       style={{ whiteSpace: 'pre-wrap' }}
                     >
                       {message.content}
@@ -444,20 +464,27 @@ export default function ChatScreen() {
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder={t('chat.inputPlaceholder')}
               className="flex-1 border-[#6AA6FF]/30 dark:border-[#9ADBC6]/30 bg-input"
+              disabled={isSending}
             />
             <Button
               onClick={handleSendMessage}
-              className={`${activeAgent === 'doctor'
-                ? 'bg-[#6AA6FF] hover:bg-[#5a96ef]'
-                : activeAgent === 'mom'
-                  ? 'bg-[#FFC98B] hover:bg-[#ffb86b] text-gray-800'
-                  : 'bg-[#9ADBC6] hover:bg-[#7ac7b0] text-white'
-                }`}
+              disabled={isSending || !inputValue.trim()}
+              className={`${
+                activeAgent === 'doctor'
+                  ? 'bg-[#6AA6FF] hover:bg-[#5a96ef]'
+                  : activeAgent === 'mom'
+                    ? 'bg-[#FFC98B] hover:bg-[#ffb86b] text-gray-800'
+                    : 'bg-[#9ADBC6] hover:bg-[#7ac7b0] text-white'
+              }`}
             >
-              <Send className="h-4 w-4" />
+              {isSending ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>

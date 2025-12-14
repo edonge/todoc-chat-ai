@@ -125,8 +125,11 @@ async def send_message(
     db.commit()
     db.refresh(user_message)
 
-    # Get AI mode name
-    ai_mode_name = "mom"
+    # Get AI mode name - map directly from ai_mode_id as fallback
+    ai_mode_map = {1: "doctor", 2: "mom", 3: "nutritionist"}
+    ai_mode_name = ai_mode_map.get(data.ai_mode_id, "mom") if data.ai_mode_id else "mom"
+
+    # Try to get from DB if available (overrides fallback)
     if data.ai_mode_id:
         ai_mode = db.query(AIMode).filter(AIMode.id == data.ai_mode_id).first()
         if ai_mode:

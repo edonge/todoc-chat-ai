@@ -129,6 +129,7 @@ export interface ChatSessionResponse {
   kid_id: number;
   created_at: string;
   updated_at: string;
+  messages?: ChatMessageResponse[];
 }
 
 export interface ChatMessageCreate {
