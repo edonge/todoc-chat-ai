@@ -1,9 +1,9 @@
 """
-Mom AI RAG 인덱스 생성 스크립트.
+Mom AI RAG ingestion script.
 
-사용법:
-- OPENAI_API_KEY를 환경변수나 .env에 설정한 뒤 실행
-- backend 디렉터리에서: `python app/rag/ingest_mom.py`
+Requirements:
+- Set OPENAI_API_KEY via env or .env
+- Run from backend directory: `python app/rag/ingest_mom.py`
 """
 from pathlib import Path
 import pickle
@@ -18,9 +18,10 @@ import tiktoken
 from app.core.config import settings
 
 
+BASE_PDF_DIR = Path(__file__).resolve().parents[3] / "pdf"
 PDFS = [
-    Path(__file__).resolve().parents[3] / "RAG" / "표준보육과정해설서_교육부.pdf",
-    Path(__file__).resolve().parents[3] / "RAG" / "보호자용설명서_보건복지부_질병관리청_국민건강보험.pdf",
+    BASE_PDF_DIR / "\ubcf4\ud638\uc790\uc6a9\uc124\uba85\uc11c_\ubcf4\uac74\ubcf5\uc9c0\ubd80_\uc9c8\ubcd1\uad00\ub9ac\uccad_\uad6d\ubbfc\uac74\uac15\ubcf4\ud5d8.pdf",
+    BASE_PDF_DIR / "\ud45c\uc900\ubcf4\uc721\uacfc\uc815\ud574\uc124\uc11c_\uad50\uc721\ubd80.pdf",
 ]
 INDEX_PATH = Path(__file__).resolve().parent / "index_mom.faiss"
 META_PATH = Path(__file__).resolve().parent / "index_mom.pkl"
@@ -49,7 +50,7 @@ def extract_chunks() -> List[Dict]:
     docs = []
     for pdf_path in PDFS:
         if not pdf_path.exists():
-            raise FileNotFoundError(f"PDF를 찾을 수 없습니다: {pdf_path}")
+            raise FileNotFoundError(f"PDF not found: {pdf_path}")
         reader = PdfReader(str(pdf_path))
         for page_no, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
@@ -93,7 +94,7 @@ def build_index(vectors: np.ndarray) -> faiss.IndexFlatIP:
 
 def main():
     if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        raise RuntimeError("OPENAI_API_KEY is not set")
 
     print("[INGEST MOM] Loading PDFs:")
     for pdf in PDFS:

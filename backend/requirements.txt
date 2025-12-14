@@ -23,6 +23,9 @@ httplib2==0.31.0
 httptools==0.7.1
 idna==3.11
 openai==1.59.8
+langchain==0.3.26
+langchain-community==0.3.27
+sentence-transformers==5.1.0
 passlib==1.7.4
 proto-plus==1.26.1
 protobuf==5.29.5

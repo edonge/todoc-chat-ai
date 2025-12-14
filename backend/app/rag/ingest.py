@@ -1,9 +1,9 @@
 """
-Doctor AI RAG 인덱스 생성 스크립트.
+Doctor AI RAG ingestion script.
 
-사용법:
-- OPENAI_API_KEY를 환경변수나 .env에 설정한 뒤 실행
-- backend 디렉터리에서: `python app/rag/ingest.py`
+Requirements:
+- Set OPENAI_API_KEY via env or .env
+- Run from backend directory: `python app/rag/ingest.py`
 """
 from pathlib import Path
 import pickle
@@ -18,7 +18,8 @@ import tiktoken
 from app.core.config import settings
 
 
-DOCTOR_PDF = Path(__file__).resolve().parents[3] / "RAG" / "영유아건강검진검진의사상담매뉴얼_보건복지부_질병관리청_국민건강보험.pdf"
+BASE_PDF_DIR = Path(__file__).resolve().parents[3] / "pdf"
+DOCTOR_PDF = BASE_PDF_DIR / "\uc601\uc720\uc544\uac74\uac15\uac80\uc9c4\uac80\uc9c4\uc758\uc0ac\uc0c1\ub2f4\ub9e4\ub274\uc5bc_\ubcf4\uac74\ubcf5\uc9c0\ubd80_\uc9c8\ubcd1\uad00\ub9ac\uccad_\uad6d\ubbfc\uac74\uac15\ubcf4\ud5d8.pdf"
 INDEX_PATH = Path(__file__).resolve().parent / "index_doctor.faiss"
 META_PATH = Path(__file__).resolve().parent / "index_doctor.pkl"
 
@@ -44,6 +45,9 @@ def chunk_by_tokens(text: str, chunk_size: int, overlap: int) -> List[str]:
 
 
 def extract_chunks() -> List[Dict]:
+    if not DOCTOR_PDF.exists():
+        raise FileNotFoundError(f"PDF not found: {DOCTOR_PDF}")
+
     reader = PdfReader(str(DOCTOR_PDF))
     docs = []
     for page_no, page in enumerate(reader.pages, start=1):
@@ -66,7 +70,6 @@ def extract_chunks() -> List[Dict]:
 
 
 def embed_texts(client: OpenAI, texts: List[str]) -> np.ndarray:
-    # Batch embeddings for efficiency
     embeddings = []
     for i in range(0, len(texts), 16):
         batch = texts[i : i + 16]
@@ -89,9 +92,7 @@ def build_index(vectors: np.ndarray) -> faiss.IndexFlatIP:
 
 def main():
     if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY가 설정되지 않았습니다.")
-    if not DOCTOR_PDF.exists():
-        raise FileNotFoundError(f"PDF를 찾을 수 없습니다: {DOCTOR_PDF}")
+        raise RuntimeError("OPENAI_API_KEY is not set")
 
     print(f"[INGEST] Loading PDF: {DOCTOR_PDF.name}")
     docs = extract_chunks()

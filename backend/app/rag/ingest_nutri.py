@@ -1,9 +1,9 @@
 """
-Nutrient AI RAG 인덱스 생성 스크립트.
+Nutrient AI RAG ingestion script.
 
-사용법:
-- OPENAI_API_KEY를 환경변수나 .env에 설정한 뒤 실행
-- backend 디렉터리에서: `python app/rag/ingest_nutri.py`
+Requirements:
+- Set OPENAI_API_KEY via env or .env
+- Run from backend directory: `python app/rag/ingest_nutri.py`
 """
 from pathlib import Path
 import pickle
@@ -18,7 +18,8 @@ import tiktoken
 from app.core.config import settings
 
 
-PDF_PATH = Path(__file__).resolve().parents[3] / "RAG" / "어린이급식관리지원센터식단운영관리지침서_식품의약품안전처_식생활안전관리원.pdf"
+BASE_PDF_DIR = Path(__file__).resolve().parents[3] / "pdf"
+PDF_PATH = BASE_PDF_DIR / "\uc5b4\ub9b0\uc774\uae09\uc2dd\uad00\ub9ac\uc9c0\uc6d0\uc13c\ud130\uc2dd\ub2e8\uc6b4\uc601\uad00\ub9ac\uc9c0\uce68\uc11c_\uc2dd\ud488\uc758\uc57d\ud488\uc548\uc804\ucc98_\uc2dd\uc0dd\ud65c\uc548\uc804\uad00\ub9ac\uc6d0.pdf"
 INDEX_PATH = Path(__file__).resolve().parent / "index_nutri.faiss"
 META_PATH = Path(__file__).resolve().parent / "index_nutri.pkl"
 
@@ -44,7 +45,7 @@ def chunk_by_tokens(text: str, chunk_size: int, overlap: int) -> List[str]:
 
 def extract_chunks() -> List[Dict]:
     if not PDF_PATH.exists():
-        raise FileNotFoundError(f"PDF를 찾을 수 없습니다: {PDF_PATH}")
+        raise FileNotFoundError(f"PDF not found: {PDF_PATH}")
 
     reader = PdfReader(str(PDF_PATH))
     docs = []
@@ -90,7 +91,7 @@ def build_index(vectors: np.ndarray) -> faiss.IndexFlatIP:
 
 def main():
     if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        raise RuntimeError("OPENAI_API_KEY is not set")
 
     print(f"[INGEST NUTRI] Loading PDF: {PDF_PATH.name}")
     docs = extract_chunks()

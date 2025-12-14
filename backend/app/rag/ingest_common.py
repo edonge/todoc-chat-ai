@@ -1,9 +1,9 @@
 """
-공통 RAG 인덱스 생성 스크립트 (모든 모드 공유).
+Common RAG ingestion script (shared mode).
 
-사용법:
-- OPENAI_API_KEY를 환경변수나 .env에 설정한 뒤 실행
-- backend 디렉터리에서: `python app/rag/ingest_common.py`
+Requirements:
+- Set OPENAI_API_KEY via env or .env
+- Run from backend directory: `python app/rag/ingest_common.py`
 """
 from pathlib import Path
 import pickle
@@ -18,7 +18,8 @@ import tiktoken
 from app.core.config import settings
 
 
-PDF_PATH = Path(__file__).resolve().parents[3] / "RAG" / "영유아건강검진관련_질병관리청.pdf"
+BASE_PDF_DIR = Path(__file__).resolve().parents[3] / "pdf"
+PDF_PATH = BASE_PDF_DIR / "\uc601\uc720\uc544\uac74\uac15\uac80\uc9c4\uad00\ub828_\uc9c8\ubcd1\uad00\ub9ac\uccad.pdf"
 INDEX_PATH = Path(__file__).resolve().parent / "index_common.faiss"
 META_PATH = Path(__file__).resolve().parent / "index_common.pkl"
 
@@ -44,7 +45,7 @@ def chunk_by_tokens(text: str, chunk_size: int, overlap: int) -> List[str]:
 
 def extract_chunks() -> List[Dict]:
     if not PDF_PATH.exists():
-        raise FileNotFoundError(f"PDF를 찾을 수 없습니다: {PDF_PATH}")
+        raise FileNotFoundError(f"PDF not found: {PDF_PATH}")
 
     reader = PdfReader(str(PDF_PATH))
     docs = []
@@ -90,7 +91,7 @@ def build_index(vectors: np.ndarray) -> faiss.IndexFlatIP:
 
 def main():
     if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY가 설정되지 않았습니다.")
+        raise RuntimeError("OPENAI_API_KEY is not set")
 
     print(f"[INGEST COMMON] Loading PDF: {PDF_PATH.name}")
     docs = extract_chunks()
