@@ -26,6 +26,13 @@ def create_kid(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    existing_kid = db.query(Kid).filter(Kid.user_id == current_user.id).first()
+    if existing_kid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kid already registered for this user"
+        )
+
     new_kid = Kid(
         user_id=current_user.id,
         name=kid_data.name,

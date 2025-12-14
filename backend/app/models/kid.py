@@ -1,10 +1,13 @@
-from sqlalchemy import Column, Integer, String, Date, TIMESTAMP, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, TIMESTAMP, func, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
 class Kid(Base):
     __tablename__ = "kids"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_kids_user_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

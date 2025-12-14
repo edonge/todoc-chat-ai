@@ -34,13 +34,8 @@ export async function getChildren(): Promise<KidResponse[]> {
  * 아이 등록 여부 확인 (온보딩 완료 여부)
  */
 export async function hasChildRegistered(): Promise<boolean> {
-  try {
-    const children = await getChildren();
-    return children && children.length > 0;
-  } catch (error) {
-    console.error('Error checking child registration:', error);
-    return false;
-  }
+  const children = await getChildren();
+  return Array.isArray(children) && children.length > 0;
 }
 
 /**
