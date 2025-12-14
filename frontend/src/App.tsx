@@ -2,7 +2,7 @@
  * App.tsx - 메인 앱 컴포넌트
  * 인증 상태에 따른 화면 라우팅
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from './components/common/Header';
 import DialNavigation from './screens/Navigation/DialNavigation';
 import HomeScreen from './screens/Home/HomeScreen';
@@ -16,15 +16,32 @@ import { useAuthContext } from './contexts/AuthContext';
 import { hasChildRegistered, getChildren } from './services/api/childService';
 import useAuthStore from './store/useAuthStore';
 
+const ONBOARDING_STORAGE_KEY = 'todoc_has_onboarded';
+
 export default function App() {
   const { isLoading: authLoading, logout } = useAuthContext();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (stored === null) return null;
+    return stored === 'true';
+  });
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedBaby, setSelectedBaby] = useState('1');
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const persistOnboardingState = useCallback((value: boolean | null) => {
+    setHasCompletedOnboarding(value);
+    if (typeof window === 'undefined') return;
+    if (value) {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } else {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    }
+  }, []);
 
   // 로그인 후 온보딩(아이 등록) 상태 확인
   useEffect(() => {
@@ -33,7 +50,7 @@ export default function App() {
         setIsCheckingOnboarding(true);
         try {
           const hasChild = await hasChildRegistered();
-          setHasCompletedOnboarding(hasChild);
+          persistOnboardingState(hasChild);
 
           // 아이가 있으면 첫 번째 아이 선택
           if (hasChild) {
@@ -44,30 +61,30 @@ export default function App() {
           }
         } catch (error) {
           console.error('Error checking onboarding:', error);
-          setHasCompletedOnboarding(false);
+          persistOnboardingState(false);
         } finally {
           setIsCheckingOnboarding(false);
         }
       } else if (!isAuthenticated) {
         // 로그아웃 시 온보딩 상태 초기화
-        setHasCompletedOnboarding(null);
+        persistOnboardingState(null);
       }
     };
 
     checkOnboarding();
-  }, [isAuthenticated, hasCompletedOnboarding]);
+  }, [isAuthenticated, hasCompletedOnboarding, persistOnboardingState]);
 
   // 로그아웃 시 상태 초기화
   const handleLogout = () => {
     logout();
-    setHasCompletedOnboarding(null);
+    persistOnboardingState(null);
     setCurrentTab('home');
     setSelectedBaby('1');
   };
 
   // 온보딩 완료 처리
   const handleOnboardingComplete = async () => {
-    setHasCompletedOnboarding(true);
+    persistOnboardingState(true);
     // 새로 등록한 아이 정보 가져오기
     try {
       const children = await getChildren();
