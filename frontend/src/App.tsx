@@ -165,7 +165,7 @@ export default function App() {
   const renderScreen = () => {
     switch (currentTab) {
       case 'home':
-        return <HomeScreen onAddRecord={handleAddRecord} onOpenChat={handleOpenChat} />;
+        return <HomeScreen onAddRecord={handleAddRecord} />;
       case 'record':
         return <RecordScreen isDarkMode={isDarkMode} />;
       case 'chat':
@@ -173,7 +173,7 @@ export default function App() {
       case 'community':
         return <CommunityScreen />;
       default:
-        return <HomeScreen onAddRecord={handleAddRecord} onOpenChat={handleOpenChat} />;
+        return <HomeScreen onAddRecord={handleAddRecord} />;
     }
   };
 
