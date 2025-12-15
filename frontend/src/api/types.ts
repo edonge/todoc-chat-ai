@@ -61,7 +61,7 @@ export type StoolAmount = 'low' | 'medium' | 'high';
 export type StoolCondition = 'normal' | 'diarrhea' | 'constipation';
 export type StoolColor = 'yellow' | 'brown' | 'green' | 'other';
 
-// Base record response
+// Base record response with details
 export interface RecordResponse {
   id: number;
   kid_id: number;
@@ -70,6 +70,25 @@ export interface RecordResponse {
   memo: string | null;
   image_url: string | null;
   created_at: string;
+  // Growth details
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  // Sleep details
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  sleep_quality?: SleepQuality | null;
+  // Meal details
+  meal_type?: MealType | null;
+  meal_detail?: string | null;
+  burp?: boolean | null;
+  // Health details
+  temperature?: number | null;
+  symptom?: Symptom | null;
+  symptom_other?: string | null;
+  // Stool details
+  amount?: StoolAmount | null;
+  condition?: StoolCondition | null;
+  color?: StoolColor | null;
 }
 
 // Specific record create types (flat structure matching backend)

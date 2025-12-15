@@ -868,14 +868,51 @@ export default function RecordScreen({ isDarkMode = false }: { isDarkMode?: bool
   };
 
   // Convert API records to JournalEntry format for display
-  const entries: JournalEntry[] = records.map((record: RecordResponse) => ({
-    id: record.id.toString(),
-    category: record.record_type === 'stool' ? 'diaper' : record.record_type,
-    title: record.title || '',
-    content: record.memo || '',
-    timestamp: format(new Date(record.created_at), 'PPP', { locale: language === 'ko' ? ko : enUS }),
-    date: new Date(record.created_at),
-  }));
+  const entries: JournalEntry[] = records.map((record: RecordResponse) => {
+    // Build details object based on record type
+    let details: any = {};
+
+    if (record.record_type === 'growth') {
+      details = {
+        height: record.height_cm?.toString(),
+        weight: record.weight_kg?.toString(),
+      };
+    } else if (record.record_type === 'sleep') {
+      details = {
+        startTime: record.start_datetime ? new Date(record.start_datetime) : undefined,
+        endTime: record.end_datetime ? new Date(record.end_datetime) : undefined,
+        quality: record.sleep_quality === 'good' ? 'Good' : record.sleep_quality === 'bad' ? 'Poor' : 'Fair',
+      };
+    } else if (record.record_type === 'meal') {
+      details = {
+        foodType: record.meal_type,
+        amount: record.meal_detail,
+        didBurp: record.burp,
+      };
+    } else if (record.record_type === 'health') {
+      details = {
+        temperature: record.temperature?.toString(),
+        symptoms: record.symptom ? [record.symptom] : [],
+        symptom_other: record.symptom_other,
+      };
+    } else if (record.record_type === 'stool') {
+      details = {
+        amount: record.amount,
+        condition: record.condition,
+        color: record.color,
+      };
+    }
+
+    return {
+      id: record.id.toString(),
+      category: record.record_type === 'stool' ? 'diaper' : record.record_type,
+      title: record.title || '',
+      content: record.memo || '',
+      timestamp: format(new Date(record.created_at), 'PPP', { locale: language === 'ko' ? ko : enUS }),
+      date: new Date(record.created_at),
+      details,
+    };
+  });
 
   if (view.screen === 'form' && view.categoryId) {
     return (

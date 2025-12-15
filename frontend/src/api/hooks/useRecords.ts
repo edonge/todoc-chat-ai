@@ -74,10 +74,11 @@ export function useRecords(kidId: number | null) {
         `/api/v1/kids/${kidId}/records/meal`,
         data
       );
-      // Add to records list using the base record info
-      if (response.record) {
-        setRecords((prev) => [response.record!, ...prev]);
-      }
+      // Refetch records from DB to ensure persistence
+      const freshRecords = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`
+      );
+      setRecords(freshRecords);
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create meal record');
@@ -97,9 +98,11 @@ export function useRecords(kidId: number | null) {
         `/api/v1/kids/${kidId}/records/sleep`,
         data
       );
-      if (response.record) {
-        setRecords((prev) => [response.record!, ...prev]);
-      }
+      // Refetch records from DB to ensure persistence
+      const freshRecords = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`
+      );
+      setRecords(freshRecords);
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create sleep record');
@@ -119,9 +122,11 @@ export function useRecords(kidId: number | null) {
         `/api/v1/kids/${kidId}/records/health`,
         data
       );
-      if (response.record) {
-        setRecords((prev) => [response.record!, ...prev]);
-      }
+      // Refetch records from DB to ensure persistence
+      const freshRecords = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`
+      );
+      setRecords(freshRecords);
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create health record');
@@ -141,9 +146,11 @@ export function useRecords(kidId: number | null) {
         `/api/v1/kids/${kidId}/records/growth`,
         data
       );
-      if (response.record) {
-        setRecords((prev) => [response.record!, ...prev]);
-      }
+      // Refetch records from DB to ensure persistence
+      const freshRecords = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`
+      );
+      setRecords(freshRecords);
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create growth record');
@@ -163,9 +170,11 @@ export function useRecords(kidId: number | null) {
         `/api/v1/kids/${kidId}/records/stool`,
         data
       );
-      if (response.record) {
-        setRecords((prev) => [response.record!, ...prev]);
-      }
+      // Refetch records from DB to ensure persistence
+      const freshRecords = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`
+      );
+      setRecords(freshRecords);
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create stool record');

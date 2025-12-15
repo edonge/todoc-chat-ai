@@ -504,7 +504,7 @@ export default function CommunityScreen() {
                       {post.kid_image_url && (
                         <AvatarImage
                           src={
-                            post.kid_image_url.starts_with('http')
+                            post.kid_image_url.startsWith('http')
                               ? post.kid_image_url
                               : `${apiBaseUrl}${post.kid_image_url}`
                           }

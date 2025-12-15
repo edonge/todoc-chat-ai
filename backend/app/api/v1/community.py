@@ -19,6 +19,14 @@ def get_post_response(post: Post, current_user_id: int, db: Session) -> dict:
         PostLike.user_id == current_user_id
     ).first() is not None
 
+    kid_name = None
+    kid_image_url = None
+    if post.kid_id:
+        kid = db.query(Kid).filter(Kid.id == post.kid_id).first()
+        if kid:
+            kid_name = kid.name
+            kid_image_url = kid.image_url
+
     return {
         "id": post.id,
         "user_id": post.user_id,
@@ -33,8 +41,8 @@ def get_post_response(post: Post, current_user_id: int, db: Session) -> dict:
         "author": AuthorResponse.model_validate(post.user) if post.user else None,
         "comment_count": comment_count,
         "is_liked": is_liked,
-        "kid_name": post.kid.name if post.kid else None,
-        "kid_image_url": post.kid.image_url if post.kid else None,
+        "kid_name": kid_name,
+        "kid_image_url": kid_image_url,
     }
 
 
@@ -46,7 +54,7 @@ def get_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid))
+    query = db.query(Post).options(joinedload(Post.user))
 
     if category:
         query = query.filter(Post.category == category)
@@ -93,7 +101,7 @@ def get_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    post = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid)).filter(Post.id == post_id).first()
+    post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
@@ -121,7 +129,7 @@ def update_post(
     db.commit()
     db.refresh(post)
 
-    post = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid)).filter(Post.id == post.id).first()
+    post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post.id).first()
     return get_post_response(post, current_user.id, db)
 
 

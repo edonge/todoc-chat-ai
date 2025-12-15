@@ -120,3 +120,30 @@ class StoolRecordResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Extended Record Response with details
+class RecordWithDetailsResponse(RecordResponse):
+    """Record response that includes type-specific details"""
+    # Growth details
+    height_cm: Optional[Decimal] = None
+    weight_kg: Optional[Decimal] = None
+    # Sleep details
+    start_datetime: Optional[datetime] = None
+    end_datetime: Optional[datetime] = None
+    sleep_quality: Optional[SleepQualityEnum] = None
+    # Meal details
+    meal_type: Optional[MealTypeEnum] = None
+    meal_detail: Optional[str] = None
+    burp: Optional[bool] = None
+    # Health details
+    temperature: Optional[Decimal] = None
+    symptom: Optional[SymptomEnum] = None
+    symptom_other: Optional[str] = None
+    # Stool details
+    amount: Optional[StoolAmountEnum] = None
+    condition: Optional[StoolConditionEnum] = None
+    color: Optional[StoolColorEnum] = None
+
+    class Config:
+        from_attributes = True

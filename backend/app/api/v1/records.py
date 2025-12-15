@@ -10,6 +10,7 @@ from app.models import (
 )
 from app.schemas.record import (
     RecordResponse,
+    RecordWithDetailsResponse,
     MealRecordCreate, MealRecordResponse,
     SleepRecordCreate, SleepRecordResponse,
     HealthRecordCreate, HealthRecordResponse,
@@ -28,7 +29,7 @@ def get_kid_or_404(kid_id: int, user_id: int, db: Session) -> Kid:
 
 
 # ========== All Records ==========
-@router.get("/", response_model=List[RecordResponse])
+@router.get("/", response_model=List[RecordWithDetailsResponse])
 def get_all_records(
     kid_id: int,
     record_type: Optional[RecordTypeEnum] = None,
@@ -48,7 +49,55 @@ def get_all_records(
     if date_to:
         query = query.filter(Record.created_at <= date_to)
 
-    return query.order_by(Record.created_at.desc()).limit(limit).all()
+    records = query.order_by(Record.created_at.desc()).limit(limit).all()
+
+    # Build response with details for each record type
+    result = []
+    for record in records:
+        record_dict = {
+            "id": record.id,
+            "kid_id": record.kid_id,
+            "record_type": record.record_type,
+            "title": record.title,
+            "memo": record.memo,
+            "image_url": record.image_url,
+            "created_at": record.created_at,
+        }
+
+        # Add type-specific details
+        if record.record_type == RecordTypeEnum.growth:
+            growth = db.query(GrowthRecord).filter(GrowthRecord.id == record.id).first()
+            if growth:
+                record_dict["height_cm"] = growth.height_cm
+                record_dict["weight_kg"] = growth.weight_kg
+        elif record.record_type == RecordTypeEnum.sleep:
+            sleep = db.query(SleepRecord).filter(SleepRecord.id == record.id).first()
+            if sleep:
+                record_dict["start_datetime"] = sleep.start_datetime
+                record_dict["end_datetime"] = sleep.end_datetime
+                record_dict["sleep_quality"] = sleep.sleep_quality
+        elif record.record_type == RecordTypeEnum.meal:
+            meal = db.query(MealRecord).filter(MealRecord.id == record.id).first()
+            if meal:
+                record_dict["meal_type"] = meal.meal_type
+                record_dict["meal_detail"] = meal.meal_detail
+                record_dict["burp"] = meal.burp
+        elif record.record_type == RecordTypeEnum.health:
+            health = db.query(HealthRecord).filter(HealthRecord.id == record.id).first()
+            if health:
+                record_dict["temperature"] = health.temperature
+                record_dict["symptom"] = health.symptom
+                record_dict["symptom_other"] = health.symptom_other
+        elif record.record_type == RecordTypeEnum.stool:
+            stool = db.query(StoolRecord).filter(StoolRecord.id == record.id).first()
+            if stool:
+                record_dict["amount"] = stool.amount
+                record_dict["condition"] = stool.condition
+                record_dict["color"] = stool.color
+
+        result.append(record_dict)
+
+    return result
 
 
 @router.delete("/{record_id}", status_code=204)
@@ -111,6 +160,8 @@ def create_meal_record(
     db.add(meal_record)
     db.commit()
     db.refresh(meal_record)
+    db.refresh(base_record)
+    meal_record.record = base_record
     return meal_record
 
 
@@ -157,6 +208,8 @@ def create_sleep_record(
     db.add(sleep_record)
     db.commit()
     db.refresh(sleep_record)
+    db.refresh(base_record)
+    sleep_record.record = base_record
     return sleep_record
 
 
@@ -203,6 +256,8 @@ def create_health_record(
     db.add(health_record)
     db.commit()
     db.refresh(health_record)
+    db.refresh(base_record)
+    health_record.record = base_record
     return health_record
 
 
@@ -248,6 +303,8 @@ def create_growth_record(
     db.add(growth_record)
     db.commit()
     db.refresh(growth_record)
+    db.refresh(base_record)
+    growth_record.record = base_record
     return growth_record
 
 
@@ -294,4 +351,6 @@ def create_stool_record(
     db.add(stool_record)
     db.commit()
     db.refresh(stool_record)
+    db.refresh(base_record)
+    stool_record.record = base_record
     return stool_record
