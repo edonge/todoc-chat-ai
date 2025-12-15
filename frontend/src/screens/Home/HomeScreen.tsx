@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, Camera, Lightbulb } from 'lucide-react';
+import { Plus, Camera, Lightbulb, Moon, Utensils, Heart, TrendingUp, Droplets } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, ko } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getChildren, uploadChildPhoto } from '@/services/api/childService';
 import { getRandomTip } from '@/services/api/dailyTipService';
+import { useRecords } from '@/api/hooks/useRecords';
+import { useSelectedKid } from '@/api/hooks/useKids';
+import type { RecordResponse, RecordType } from '@/api/types';
 
 interface HomeScreenProps {
   onAddRecord: () => void;
@@ -15,6 +18,8 @@ interface HomeScreenProps {
 
 export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
   const { t, language } = useLanguage();
+  const { selectedKidId, selectKid } = useSelectedKid();
+  const { records, fetchRecords } = useRecords(selectedKidId);
   const [babyId, setBabyId] = useState<number | null>(null);
   const [babyName, setBabyName] = useState('');
   const [babyPhoto, setBabyPhoto] = useState('');
@@ -47,13 +52,24 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
             const apiUrl = (import.meta as any).env?.VITE_API_URL || '';
             setBabyPhoto(apiUrl + child.image_url);
           }
+          // 선택된 아이 ID 설정
+          if (!selectedKidId) {
+            selectKid(child.id);
+          }
         }
       } catch (error) {
         console.error('Error fetching child info:', error);
       }
     };
     fetchChildInfo();
-  }, []);
+  }, [selectedKidId, selectKid]);
+
+  // 최근 기록 가져오기
+  useEffect(() => {
+    if (selectedKidId) {
+      fetchRecords({ limit: 5 }).catch(console.error);
+    }
+  }, [selectedKidId, fetchRecords]);
 
   // 데일리 팁 가져오기 (홈화면 접속 시마다)
   useEffect(() => {
@@ -132,8 +148,48 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
     photo: babyPhoto,
   };
 
-  // TODO: API에서 최근 기록 가져오기
-  const recentRecords: { type: string; time: string; duration?: string; amount?: string; temp?: string; icon: any; color: string }[] = [];
+  // API 기록을 표시용 포맷으로 변환
+  const getRecordIcon = (type: RecordType) => {
+    switch (type) {
+      case 'sleep': return Moon;
+      case 'meal': return Utensils;
+      case 'health': return Heart;
+      case 'growth': return TrendingUp;
+      case 'stool': return Droplets;
+      default: return Heart;
+    }
+  };
+
+  const getRecordColor = (type: RecordType) => {
+    switch (type) {
+      case 'sleep': return '#9ADBC6';
+      case 'meal': return '#FFC98B';
+      case 'health': return '#ef4444';
+      case 'growth': return '#6AA6FF';
+      case 'stool': return '#38bdf8';
+      default: return '#6b7280';
+    }
+  };
+
+  const getRecordLabel = (record: RecordResponse) => {
+    const typeLabels: Record<RecordType, string> = {
+      sleep: language === 'ko' ? '수면' : 'Sleep',
+      meal: language === 'ko' ? '식사' : 'Meal',
+      health: language === 'ko' ? '건강' : 'Health',
+      growth: language === 'ko' ? '성장' : 'Growth',
+      stool: language === 'ko' ? '기저귀' : 'Diaper',
+      misc: language === 'ko' ? '기타' : 'Other',
+    };
+    return record.title || typeLabels[record.record_type] || '';
+  };
+
+  const recentRecords = records.slice(0, 2).map((record: RecordResponse) => ({
+    type: record.record_type,
+    label: getRecordLabel(record),
+    time: format(new Date(record.created_at), 'HH:mm'),
+    icon: getRecordIcon(record.record_type),
+    color: getRecordColor(record.record_type),
+  }));
 
   return (
     <div className="h-full w-full overflow-auto p-4">
@@ -217,7 +273,7 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
                   </div>
 
                   <div className="space-y-2">
-                    {recentRecords.slice(0, 2).map((record, idx) => {
+                    {recentRecords.map((record, idx) => {
                       const Icon = record.icon;
                       return (
                         <div key={idx} className="flex items-center gap-2 text-xs">
@@ -227,12 +283,10 @@ export default function HomeScreen({ onAddRecord }: HomeScreenProps) {
                           >
                             <Icon className="h-3.5 w-3.5" style={{ color: record.color }} />
                           </div>
-                          <span className="text-[#F3F3F3] dark:text-[#F3F3F3]">
-                            {record.type === 'sleep' && `${t('home.nap')} ${record.duration}`}
-                            {record.type === 'meal' && `${t('home.feed')} ${record.amount}`}
-                            {record.type === 'health' && `${t('home.temp')} ${record.temp}`}
+                          <span className="text-[#F3F3F3] dark:text-[#F3F3F3] truncate">
+                            {record.label}
                           </span>
-                          <span className="text-[#A5A5A5] dark:text-[#A5A5A5] ml-auto">{record.time}</span>
+                          <span className="text-[#A5A5A5] dark:text-[#A5A5A5] ml-auto flex-shrink-0">{record.time}</span>
                         </div>
                       );
                     })}

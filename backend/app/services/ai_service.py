@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict
 from sqlalchemy.orm import Session, joinedload
 from openai import AsyncOpenAI
+from langdetect import detect, LangDetectException
 from app.core.config import settings
 from app.models import Kid, Record, SleepRecord, HealthRecord, GrowthRecord
 
@@ -13,7 +14,8 @@ class AIService:
         self,
         ai_mode: str,
         kid_context: Optional[str] = None,
-        rag_context: Optional[str] = None
+        rag_context: Optional[str] = None,
+        language_code: str = "ko",
     ) -> str:
         base_prompts = {
             "doctor": (
@@ -45,12 +47,7 @@ class AIService:
         if rag_context:
             system_prompt += f"\n\n[참고 근거]\n{rag_context}"
 
-        system_prompt += (
-            "\n\n원칙:\n"
-            "- 모든 답변은 한국어 존댓말로 짧고 명확하게 작성합니다.\n"
-            "- 근거가 부족하거나 위험 요소가 있으면 전문가 방문을 권고합니다.\n"
-            "- 진단이나 처방을 단정하지 말고, 증상 악화 시 즉시 병원 방문을 안내합니다."
-        )
+        system_prompt += self._build_language_guidelines(language_code)
 
         return system_prompt
 
@@ -110,6 +107,47 @@ class AIService:
 
         return "\n".join(context_parts)
 
+    def detect_language(self, text: str) -> str:
+        cleaned = text.strip()
+        if not cleaned:
+            return "ko"
+        try:
+            return detect(cleaned)
+        except LangDetectException:
+            if any("가" <= char <= "힣" for char in cleaned):
+                return "ko"
+            return "en"
+
+    def _language_label(self, language_code: str) -> str:
+        mapping = {
+            "ko": "Korean honorific speech",
+            "en": "English",
+            "ja": "Japanese",
+            "zh-cn": "Chinese",
+            "zh-tw": "Chinese",
+            "es": "Spanish",
+            "fr": "French",
+        }
+        return mapping.get(language_code.lower(), language_code.upper())
+
+    def _build_language_guidelines(self, language_code: str) -> str:
+        if language_code.lower() == "ko":
+            return (
+                "\n\n원칙:\n"
+                "- 근거가 부족하거나 위험 요소가 있으면 전문가 방문을 권고합니다.\n"
+                "- 진단이나 처방을 단정하지 말고, 증상 악화 시 즉시 병원 방문을 안내합니다.\n"
+                "- 모든 답변은 한국어 존댓말로 짧고 명확하게 작성합니다."
+            )
+
+        language_label = self._language_label(language_code)
+        return (
+            "\n\nGuidelines:\n"
+            "- Provide evidence-based and practical guidance for caregivers.\n"
+            "- If an emergency is suspected, clearly recommend visiting the nearest emergency room.\n"
+            "- Remind users that diagnoses or prescriptions must be confirmed by medical professionals.\n"
+            f"- Respond in {language_label} (the same language as the user's latest question) with a warm, respectful tone."
+        )
+
     async def generate_response(
         self,
         message: str,
@@ -126,7 +164,9 @@ class AIService:
         if kid and db:
             kid_context = self.build_kid_context(kid, db)
 
-        system_prompt = self.get_system_prompt(ai_mode, kid_context, rag_context)
+        language_code = self.detect_language(message)
+
+        system_prompt = self.get_system_prompt(ai_mode, kid_context, rag_context, language_code)
 
         messages = [{"role": "system", "content": system_prompt}]
 

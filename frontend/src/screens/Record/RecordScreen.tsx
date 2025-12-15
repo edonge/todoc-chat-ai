@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Bot,
   TrendingUp,
@@ -11,6 +11,8 @@ import {
   Calendar as CalendarIcon,
   Droplets,
   Pencil,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, ko } from 'date-fns/locale';
@@ -31,6 +33,9 @@ import { cn } from '@/components/ui/utils';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRecords } from '@/api/hooks/useRecords';
+import { useKids, useSelectedKid } from '@/api/hooks/useKids';
+import type { RecordResponse, MealType, SleepQuality, Symptom, StoolAmount, StoolCondition, StoolColor } from '@/api/types';
 
 // --- MOCK DATA & TYPES ---
 interface JournalEntry {
@@ -714,39 +719,163 @@ const JournalForm = ({ categoryId, onSave, onBack, isDarkMode }: { categoryId: s
 // --- MAIN COMPONENT ---
 export default function RecordScreen({ isDarkMode = false }: { isDarkMode?: boolean }) {
   const { t, language } = useLanguage();
+  const { selectedKidId } = useSelectedKid();
+  const { fetchKids } = useKids();
+  const {
+    records,
+    loading,
+    fetchRecords,
+    createMealRecord,
+    createSleepRecord,
+    createHealthRecord,
+    createGrowthRecord,
+    createStoolRecord,
+    deleteRecord,
+  } = useRecords(selectedKidId);
+
   const [view, setView] = useState<{ screen: 'list' | 'form'; categoryId: string | null }>({ screen: 'list', categoryId: null });
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isAiSheetOpen, setIsAiSheetOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
 
-  const handleSaveEntry = (newEntryData: { category: string; title: string; content: string; date: Date; details?: any }) => {
-    // For sleep entries, use details.startTime for date and timestamp
-    let entryDate = newEntryData.date;
-    let timestampDate = newEntryData.date;
-    
-    if (newEntryData.category === 'sleep' && newEntryData.details?.startTime instanceof Date) {
-      entryDate = new Date(
-        newEntryData.details.startTime.getFullYear(),
-        newEntryData.details.startTime.getMonth(),
-        newEntryData.details.startTime.getDate()
-      );
-      timestampDate = newEntryData.details.startTime;
+  // Fetch kids and records on mount
+  useEffect(() => {
+    fetchKids().catch(console.error);
+  }, [fetchKids]);
+
+  useEffect(() => {
+    if (selectedKidId) {
+      fetchRecords().catch(console.error);
+    }
+  }, [selectedKidId, fetchRecords]);
+
+  // Map symptom names to backend enum values
+  const mapSymptomToEnum = (symptom: string): Symptom => {
+    const symptomMap: Record<string, Symptom> = {
+      'Cough': 'cough',
+      'Fever': 'fever',
+      'Runny Nose': 'runny_nose',
+      'Vomiting': 'vomit',
+      'Diarrhea': 'diarrhea',
+      'other': 'other',
+    };
+    return symptomMap[symptom] || 'other';
+  };
+
+  // Map quality to backend enum
+  const mapQualityToEnum = (quality: string): SleepQuality => {
+    const qualityMap: Record<string, SleepQuality> = {
+      'Good': 'good',
+      'Fair': 'normal',
+      'Poor': 'bad',
+    };
+    return qualityMap[quality] || 'normal';
+  };
+
+  // Map meal type to backend enum
+  const mapMealTypeToEnum = (foodType: string): MealType => {
+    const lowerType = foodType.toLowerCase();
+    if (lowerType.includes('breast') || lowerType.includes('모유')) return 'breast_milk';
+    if (lowerType.includes('formula') || lowerType.includes('분유')) return 'formula';
+    return 'baby_food';
+  };
+
+  const handleSaveEntry = async (newEntryData: { category: string; title: string; content: string; date: Date; details?: any }) => {
+    if (!selectedKidId) {
+      toast.error(language === 'ko' ? '아이를 먼저 선택해주세요.' : 'Please select a kid first.');
+      return;
     }
 
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      timestamp: format(timestampDate, 'PPP', { locale: language === 'ko' ? ko : enUS }),
-      category: newEntryData.category,
-      title: newEntryData.title,
-      content: newEntryData.content,
-      date: entryDate,
-      details: newEntryData.details,
-    };
-    setEntries([newEntry, ...entries]);
-    const categoryLabel = recordCategories(t).find(cat => cat.id === newEntry.category)?.label || '';
-    toast.success(`${categoryLabel} ${t('form.saved')}`);
-    setView({ screen: 'list', categoryId: null });
+    try {
+      const baseData = {
+        title: newEntryData.title || undefined,
+        memo: newEntryData.content || undefined,
+      };
+
+      switch (newEntryData.category) {
+        case 'growth':
+          await createGrowthRecord({
+            ...baseData,
+            height_cm: newEntryData.details?.height ? parseFloat(newEntryData.details.height) : undefined,
+            weight_kg: newEntryData.details?.weight ? parseFloat(newEntryData.details.weight) : undefined,
+          });
+          break;
+
+        case 'sleep':
+          if (!newEntryData.details?.startTime || !newEntryData.details?.endTime) {
+            toast.error(language === 'ko' ? '시작/종료 시간을 입력해주세요.' : 'Please enter start/end time.');
+            return;
+          }
+          await createSleepRecord({
+            ...baseData,
+            start_datetime: newEntryData.details.startTime.toISOString(),
+            end_datetime: newEntryData.details.endTime.toISOString(),
+            sleep_quality: mapQualityToEnum(newEntryData.details.quality || 'Fair'),
+          });
+          break;
+
+        case 'meal':
+          await createMealRecord({
+            ...baseData,
+            meal_type: mapMealTypeToEnum(newEntryData.details?.foodType || ''),
+            meal_detail: newEntryData.details?.amount || newEntryData.details?.foodType,
+            burp: newEntryData.details?.didBurp || false,
+          });
+          break;
+
+        case 'health':
+          const symptom = newEntryData.details?.symptoms?.[0]
+            ? mapSymptomToEnum(newEntryData.details.symptoms[0])
+            : (newEntryData.details?.isOtherChecked ? 'other' : 'other');
+          await createHealthRecord({
+            ...baseData,
+            temperature: newEntryData.details?.temperature ? parseFloat(newEntryData.details.temperature) : undefined,
+            symptom,
+            symptom_other: newEntryData.details?.symptom_other || newEntryData.details?.otherSymptomText,
+          });
+          break;
+
+        case 'diaper':
+          await createStoolRecord({
+            ...baseData,
+            amount: (newEntryData.details?.amount || 'medium') as StoolAmount,
+            condition: (newEntryData.details?.condition || 'normal') as StoolCondition,
+            color: (newEntryData.details?.color || 'yellow') as StoolColor,
+          });
+          break;
+
+        default:
+          toast.error(language === 'ko' ? '지원하지 않는 카테고리입니다.' : 'Unsupported category.');
+          return;
+      }
+
+      const categoryLabel = recordCategories(t).find(cat => cat.id === newEntryData.category)?.label || '';
+      toast.success(`${categoryLabel} ${t('form.saved')}`);
+      setView({ screen: 'list', categoryId: null });
+    } catch (err) {
+      console.error('Failed to save record:', err);
+      toast.error(language === 'ko' ? '기록 저장에 실패했습니다.' : 'Failed to save record.');
+    }
   };
+
+  const handleDeleteRecord = async (recordId: number) => {
+    try {
+      await deleteRecord(recordId);
+      toast.success(language === 'ko' ? '기록이 삭제되었습니다.' : 'Record deleted.');
+    } catch (err) {
+      console.error('Failed to delete record:', err);
+      toast.error(language === 'ko' ? '기록 삭제에 실패했습니다.' : 'Failed to delete record.');
+    }
+  };
+
+  // Convert API records to JournalEntry format for display
+  const entries: JournalEntry[] = records.map((record: RecordResponse) => ({
+    id: record.id.toString(),
+    category: record.record_type === 'stool' ? 'diaper' : record.record_type,
+    title: record.title || '',
+    content: record.memo || '',
+    timestamp: format(new Date(record.created_at), 'PPP', { locale: language === 'ko' ? ko : enUS }),
+    date: new Date(record.created_at),
+  }));
 
   if (view.screen === 'form' && view.categoryId) {
     return (
@@ -804,9 +933,33 @@ export default function RecordScreen({ isDarkMode = false }: { isDarkMode?: bool
 
         <div className="pt-6 space-y-3">
           <h2 className="font-medium text-muted-foreground">{t('record.recent')}</h2>
-          {entries.length > 0 ? (
+          {!selectedKidId ? (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">
+                {language === 'ko' ? '아이를 먼저 등록해주세요.' : 'Please register a kid first.'}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {language === 'ko' ? '홈 화면에서 아이 정보를 등록할 수 있습니다.' : 'You can register kid info from the home screen.'}
+              </p>
+            </div>
+          ) : loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : entries.length > 0 ? (
             <>
-              {displayedEntries.map(entry => <JournalEntryCard key={entry.id} entry={entry} />)}
+              {displayedEntries.map(entry => (
+                <div key={entry.id} className="relative group">
+                  <JournalEntryCard entry={entry} />
+                  <button
+                    onClick={() => handleDeleteRecord(parseInt(entry.id))}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50"
+                    title={language === 'ko' ? '삭제' : 'Delete'}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </button>
+                </div>
+              ))}
               {entries.length > 3 && !showAllEntries && (
                 <Button
                   variant="outline"

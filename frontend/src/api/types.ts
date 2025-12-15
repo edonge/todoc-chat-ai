@@ -54,21 +54,14 @@ export interface KidResponse {
 
 // ============ Record Types ============
 export type RecordType = 'growth' | 'sleep' | 'meal' | 'health' | 'stool' | 'misc';
-export type MealType = 'breast_milk' | 'formula' | 'baby_food' | 'snack' | 'other';
+export type MealType = 'breast_milk' | 'formula' | 'baby_food';
 export type SleepQuality = 'good' | 'normal' | 'bad';
-export type Symptom = 'fever' | 'cough' | 'runny_nose' | 'vomiting' | 'diarrhea' | 'rash' | 'other';
-export type StoolAmount = 'small' | 'medium' | 'large';
-export type StoolCondition = 'hard' | 'normal' | 'soft' | 'watery';
-export type StoolColor = 'yellow' | 'green' | 'brown' | 'black' | 'red' | 'white';
+export type Symptom = 'cough' | 'fever' | 'runny_nose' | 'vomit' | 'diarrhea' | 'other';
+export type StoolAmount = 'low' | 'medium' | 'high';
+export type StoolCondition = 'normal' | 'diarrhea' | 'constipation';
+export type StoolColor = 'yellow' | 'brown' | 'green' | 'other';
 
-export interface RecordCreate {
-  kid_id: number;
-  record_type: RecordType;
-  title?: string;
-  memo?: string;
-  image_url?: string;
-}
-
+// Base record response
 export interface RecordResponse {
   id: number;
   kid_id: number;
@@ -79,42 +72,88 @@ export interface RecordResponse {
   created_at: string;
 }
 
-// Specific record types
+// Specific record create types (flat structure matching backend)
 export interface MealRecordCreate {
-  record: RecordCreate;
+  title?: string;
+  memo?: string;
+  image_url?: string;
   meal_type: MealType;
   meal_detail?: string;
-  amount_ml?: number;
   burp?: boolean;
 }
 
+export interface MealRecordResponse {
+  id: number;
+  meal_type: MealType;
+  meal_detail: string | null;
+  burp: boolean | null;
+  record: RecordResponse | null;
+}
+
 export interface SleepRecordCreate {
-  record: RecordCreate;
+  title?: string;
+  memo?: string;
+  image_url?: string;
   start_datetime: string;
   end_datetime: string;
-  quality?: SleepQuality;
+  sleep_quality: SleepQuality;
+}
+
+export interface SleepRecordResponse {
+  id: number;
+  start_datetime: string;
+  end_datetime: string;
+  sleep_quality: SleepQuality;
+  record: RecordResponse | null;
 }
 
 export interface HealthRecordCreate {
-  record: RecordCreate;
+  title?: string;
+  memo?: string;
+  image_url?: string;
   temperature?: number;
-  symptom?: Symptom;
-  medication?: string;
-  hospital_visit?: boolean;
+  symptom: Symptom;
+  symptom_other?: string;
+}
+
+export interface HealthRecordResponse {
+  id: number;
+  temperature: number | null;
+  symptom: Symptom;
+  symptom_other: string | null;
+  record: RecordResponse | null;
 }
 
 export interface GrowthRecordCreate {
-  record: RecordCreate;
+  title?: string;
+  memo?: string;
+  image_url?: string;
   height_cm?: number;
   weight_kg?: number;
-  head_cm?: number;
+}
+
+export interface GrowthRecordResponse {
+  id: number;
+  height_cm: number | null;
+  weight_kg: number | null;
+  record: RecordResponse | null;
 }
 
 export interface StoolRecordCreate {
-  record: RecordCreate;
-  amount?: StoolAmount;
-  condition?: StoolCondition;
-  color?: StoolColor;
+  title?: string;
+  memo?: string;
+  image_url?: string;
+  amount: StoolAmount;
+  condition: StoolCondition;
+  color: StoolColor;
+}
+
+export interface StoolRecordResponse {
+  id: number;
+  amount: StoolAmount;
+  condition: StoolCondition;
+  color: StoolColor;
+  record: RecordResponse | null;
 }
 
 // ============ Chat Types ============
@@ -149,6 +188,11 @@ export interface ChatMessageResponse {
 // ============ Community Types ============
 export type CommunityCategory = 'general' | 'marketplace' | 'recipe';
 
+export interface AuthorResponse {
+  id: number;
+  username: string;
+}
+
 export interface PostCreate {
   kid_id?: number;
   category: CommunityCategory;
@@ -174,16 +218,18 @@ export interface PostResponse {
   likes_count: number;
   created_at: string;
   updated_at: string;
-  author_nickname: string;
-  comments_count: number;
+  author: AuthorResponse | null;
+  comment_count: number;
   is_liked: boolean;
+  kid_name: string | null;
+  kid_image_url: string | null;
 }
 
 export interface PostListResponse {
   posts: PostResponse[];
   total: number;
   page: number;
-  per_page: number;
+  limit: number;
 }
 
 export interface CommentCreate {
@@ -193,10 +239,9 @@ export interface CommentCreate {
 export interface CommentResponse {
   id: number;
   post_id: number;
-  user_id: number;
   content: string;
   created_at: string;
-  author_nickname: string;
+  author: AuthorResponse;
 }
 
 // ============ File Upload Types ============

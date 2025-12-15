@@ -26,6 +26,7 @@ openai>=1.68.2,<2.0.0
 langchain==0.3.26
 langchain-community==0.3.27
 langchain-openai==0.3.19
+langdetect==1.0.9
 passlib==1.7.4
 proto-plus==1.26.1
 protobuf==5.29.5

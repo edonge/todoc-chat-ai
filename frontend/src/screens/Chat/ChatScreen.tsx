@@ -138,6 +138,19 @@ export default function ChatScreen() {
     loadSessions();
   }, [kidId]);
 
+  // UTC 시간을 로컬 시간으로 변환
+  const parseServerTime = (dateString: string): Date => {
+    // 서버에서 UTC로 저장된 시간을 파싱
+    const date = new Date(dateString);
+    // 이미 ISO 형식이면 자동으로 로컬 타임존으로 변환됨
+    // 하지만 서버가 timezone 정보 없이 보내면 UTC로 간주해야 함
+    if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+      // timezone 정보가 없으면 UTC로 간주하여 로컬 시간으로 변환
+      return new Date(dateString + 'Z');
+    }
+    return date;
+  };
+
   // 세션 메시지 로드
   const loadSessionMessages = useCallback(async (sessionId: number) => {
     try {
@@ -147,7 +160,7 @@ export default function ChatScreen() {
           id: msg.id.toString(),
           role: msg.sender === 'user' ? 'user' : 'ai',
           content: msg.content,
-          timestamp: new Date(msg.created_at),
+          timestamp: parseServerTime(msg.created_at),
           aiModeId: msg.ai_mode_id,
         }));
         setMessages(loadedMessages);
@@ -159,7 +172,7 @@ export default function ChatScreen() {
       console.error('Error loading session messages:', error);
       setMessages([getInitialMessage(activeAgent)]);
     }
-  }, [activeAgent, t]);
+  }, [activeAgent]);
 
   // 스크롤 자동 이동
   useEffect(() => {
@@ -250,7 +263,7 @@ export default function ChatScreen() {
             id: aiResponse.id.toString(),
             role: 'ai',
             content: aiResponse.content,
-            timestamp: new Date(aiResponse.created_at),
+            timestamp: new Date(),
             aiModeId: aiResponse.ai_mode_id,
           },
         ];

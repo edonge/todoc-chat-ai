@@ -16,7 +16,7 @@ import type {
 interface PostFilters {
   category?: CommunityCategory;
   page?: number;
-  per_page?: number;
+  limit?: number;
 }
 
 export function useCommunity() {
@@ -32,7 +32,7 @@ export function useCommunity() {
       const params: Record<string, string> = {};
       if (filters.category) params.category = filters.category;
       if (filters.page) params.page = filters.page.toString();
-      if (filters.per_page) params.per_page = filters.per_page.toString();
+      if (filters.limit) params.limit = filters.limit.toString();
 
       const response = await apiClient.get<PostListResponse>('/api/v1/community/posts', params);
       setPosts(response.posts);
@@ -107,36 +107,43 @@ export function useCommunity() {
     }
   }, []);
 
-  const likePost = useCallback(async (postId: number) => {
+  const toggleLike = useCallback(async (postId: number) => {
     try {
-      await apiClient.post(`/api/v1/community/posts/${postId}/like`);
+      const response = await apiClient.post<{ liked: boolean; likes_count: number }>(
+        `/api/v1/community/posts/${postId}/like`
+      );
       setPosts((prev) =>
         prev.map((post) =>
           post.id === postId
-            ? { ...post, likes_count: post.likes_count + 1, is_liked: true }
+            ? { ...post, likes_count: response.likes_count, is_liked: response.liked }
             : post
         )
       );
+      return response;
     } catch (err: any) {
-      setError(err.message || 'Failed to like post');
+      setError(err.message || 'Failed to toggle like');
       throw err;
     }
   }, []);
 
+  // Keep likePost and unlikePost for backwards compatibility, both call toggleLike
+  const likePost = useCallback(async (postId: number) => {
+    return toggleLike(postId);
+  }, [toggleLike]);
+
   const unlikePost = useCallback(async (postId: number) => {
-    try {
-      await apiClient.delete(`/api/v1/community/posts/${postId}/like`);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, likes_count: Math.max(0, post.likes_count - 1), is_liked: false }
-            : post
-        )
-      );
-    } catch (err: any) {
-      setError(err.message || 'Failed to unlike post');
-      throw err;
-    }
+    return toggleLike(postId);
+  }, [toggleLike]);
+
+  // 댓글 수 업데이트 (댓글 추가/삭제 시 호출)
+  const updatePostCommentCount = useCallback((postId: number, delta: number) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? { ...post, comment_count: Math.max(0, post.comment_count + delta) }
+          : post
+      )
+    );
   }, []);
 
   return {
@@ -149,8 +156,10 @@ export function useCommunity() {
     createPost,
     updatePost,
     deletePost,
+    toggleLike,
     likePost,
     unlikePost,
+    updatePostCommentCount,
   };
 }
 
@@ -202,7 +211,7 @@ export function useComments(postId: number) {
       setLoading(true);
       setError(null);
       try {
-        await apiClient.delete(`/api/v1/community/posts/${postId}/comments/${commentId}`);
+        await apiClient.delete(`/api/v1/community/comments/${commentId}`);
         setComments((prev) => prev.filter((comment) => comment.id !== commentId));
       } catch (err: any) {
         setError(err.message || 'Failed to delete comment');
@@ -211,7 +220,7 @@ export function useComments(postId: number) {
         setLoading(false);
       }
     },
-    [postId]
+    []
   );
 
   return {

@@ -56,6 +56,8 @@ class PostResponse(BaseModel):
     author: Optional[AuthorResponse] = None
     comment_count: int = 0
     is_liked: bool = False
+    kid_name: Optional[str] = None
+    kid_image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

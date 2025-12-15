@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 from app.api.deps import get_db, get_current_user
-from app.models import User, Post, Comment, PostLike, CommunityCategoryEnum
+from app.models import User, Post, Comment, PostLike, CommunityCategoryEnum, Kid
 from app.schemas.community import (
     PostCreate, PostUpdate, PostResponse, PostListResponse,
     CommentCreate, CommentResponse, AuthorResponse
@@ -32,7 +32,9 @@ def get_post_response(post: Post, current_user_id: int, db: Session) -> dict:
         "likes_count": post.likes_count,
         "author": AuthorResponse.model_validate(post.user) if post.user else None,
         "comment_count": comment_count,
-        "is_liked": is_liked
+        "is_liked": is_liked,
+        "kid_name": post.kid.name if post.kid else None,
+        "kid_image_url": post.kid.image_url if post.kid else None,
     }
 
 
@@ -44,7 +46,7 @@ def get_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Post).options(joinedload(Post.user))
+    query = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid))
 
     if category:
         query = query.filter(Post.category == category)
@@ -68,7 +70,14 @@ def create_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    post = Post(user_id=current_user.id, **data.model_dump())
+    payload = data.model_dump()
+    kid_id = payload.pop("kid_id", None)
+    if kid_id is None:
+        kid = db.query(Kid).filter(Kid.user_id == current_user.id).first()
+        if kid:
+            kid_id = kid.id
+
+    post = Post(user_id=current_user.id, kid_id=kid_id, **payload)
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -84,7 +93,7 @@ def get_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post_id).first()
+    post = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid)).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
@@ -112,7 +121,7 @@ def update_post(
     db.commit()
     db.refresh(post)
 
-    post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post.id).first()
+    post = db.query(Post).options(joinedload(Post.user), joinedload(Post.kid)).filter(Post.id == post.id).first()
     return get_post_response(post, current_user.id, db)
 
 

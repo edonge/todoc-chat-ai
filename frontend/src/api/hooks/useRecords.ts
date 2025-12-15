@@ -7,36 +7,53 @@ import type {
   RecordResponse,
   RecordType,
   MealRecordCreate,
+  MealRecordResponse,
   SleepRecordCreate,
+  SleepRecordResponse,
   HealthRecordCreate,
+  HealthRecordResponse,
   GrowthRecordCreate,
+  GrowthRecordResponse,
   StoolRecordCreate,
+  StoolRecordResponse,
 } from '../types';
 
 interface RecordFilters {
-  kid_id: number;
   record_type?: RecordType;
-  start_date?: string;
-  end_date?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
 }
 
-export function useRecords() {
+// Union type for all record responses
+export type AnyRecordResponse =
+  | MealRecordResponse
+  | SleepRecordResponse
+  | HealthRecordResponse
+  | GrowthRecordResponse
+  | StoolRecordResponse;
+
+export function useRecords(kidId: number | null) {
   const [records, setRecords] = useState<RecordResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecords = useCallback(async (filters: RecordFilters) => {
+  const fetchRecords = useCallback(async (filters: RecordFilters = {}) => {
+    if (!kidId) return [];
+
     setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string> = {
-        kid_id: filters.kid_id.toString(),
-      };
+      const params: Record<string, string> = {};
       if (filters.record_type) params.record_type = filters.record_type;
-      if (filters.start_date) params.start_date = filters.start_date;
-      if (filters.end_date) params.end_date = filters.end_date;
+      if (filters.date_from) params.date_from = filters.date_from;
+      if (filters.date_to) params.date_to = filters.date_to;
+      if (filters.limit) params.limit = filters.limit.toString();
 
-      const response = await apiClient.get<RecordResponse[]>('/api/v1/records', params);
+      const response = await apiClient.get<RecordResponse[]>(
+        `/api/v1/kids/${kidId}/records`,
+        params
+      );
       setRecords(response);
       return response;
     } catch (err: any) {
@@ -45,14 +62,22 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const createMealRecord = useCallback(async (data: MealRecordCreate) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<RecordResponse>('/api/v1/records/meal', data);
-      setRecords((prev) => [response, ...prev]);
+      const response = await apiClient.post<MealRecordResponse>(
+        `/api/v1/kids/${kidId}/records/meal`,
+        data
+      );
+      // Add to records list using the base record info
+      if (response.record) {
+        setRecords((prev) => [response.record!, ...prev]);
+      }
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create meal record');
@@ -60,14 +85,21 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const createSleepRecord = useCallback(async (data: SleepRecordCreate) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<RecordResponse>('/api/v1/records/sleep', data);
-      setRecords((prev) => [response, ...prev]);
+      const response = await apiClient.post<SleepRecordResponse>(
+        `/api/v1/kids/${kidId}/records/sleep`,
+        data
+      );
+      if (response.record) {
+        setRecords((prev) => [response.record!, ...prev]);
+      }
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create sleep record');
@@ -75,14 +107,21 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const createHealthRecord = useCallback(async (data: HealthRecordCreate) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<RecordResponse>('/api/v1/records/health', data);
-      setRecords((prev) => [response, ...prev]);
+      const response = await apiClient.post<HealthRecordResponse>(
+        `/api/v1/kids/${kidId}/records/health`,
+        data
+      );
+      if (response.record) {
+        setRecords((prev) => [response.record!, ...prev]);
+      }
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create health record');
@@ -90,14 +129,21 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const createGrowthRecord = useCallback(async (data: GrowthRecordCreate) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<RecordResponse>('/api/v1/records/growth', data);
-      setRecords((prev) => [response, ...prev]);
+      const response = await apiClient.post<GrowthRecordResponse>(
+        `/api/v1/kids/${kidId}/records/growth`,
+        data
+      );
+      if (response.record) {
+        setRecords((prev) => [response.record!, ...prev]);
+      }
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create growth record');
@@ -105,14 +151,21 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const createStoolRecord = useCallback(async (data: StoolRecordCreate) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<RecordResponse>('/api/v1/records/stool', data);
-      setRecords((prev) => [response, ...prev]);
+      const response = await apiClient.post<StoolRecordResponse>(
+        `/api/v1/kids/${kidId}/records/stool`,
+        data
+      );
+      if (response.record) {
+        setRecords((prev) => [response.record!, ...prev]);
+      }
       return response;
     } catch (err: any) {
       setError(err.message || 'Failed to create stool record');
@@ -120,13 +173,15 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   const deleteRecord = useCallback(async (recordId: number) => {
+    if (!kidId) throw new Error('No kid selected');
+
     setLoading(true);
     setError(null);
     try {
-      await apiClient.delete(`/api/v1/records/${recordId}`);
+      await apiClient.delete(`/api/v1/kids/${kidId}/records/${recordId}`);
       setRecords((prev) => prev.filter((record) => record.id !== recordId));
     } catch (err: any) {
       setError(err.message || 'Failed to delete record');
@@ -134,7 +189,7 @@ export function useRecords() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [kidId]);
 
   return {
     records,
