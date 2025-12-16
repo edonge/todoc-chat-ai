@@ -78,14 +78,20 @@ def create_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    payload = data.model_dump()
-    kid_id = payload.pop("kid_id", None)
+    kid_id = data.kid_id
     if kid_id is None:
         kid = db.query(Kid).filter(Kid.user_id == current_user.id).first()
         if kid:
             kid_id = kid.id
 
-    post = Post(user_id=current_user.id, kid_id=kid_id, **payload)
+    post = Post(
+        user_id=current_user.id,
+        kid_id=kid_id,
+        category=data.category,
+        title=data.title,
+        content=data.content,
+        image_url=data.image_url
+    )
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -122,9 +128,14 @@ def update_post(
     if post.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this post")
 
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(post, field, value)
+    if data.category is not None:
+        post.category = data.category
+    if data.title is not None:
+        post.title = data.title
+    if data.content is not None:
+        post.content = data.content
+    if data.image_url is not None:
+        post.image_url = data.image_url
 
     db.commit()
     db.refresh(post)
