@@ -17,7 +17,8 @@ class AIService:
         rag_context: Optional[str] = None,
         language_code: str = "ko",
     ) -> str:
-        base_prompts = {
+        # Korean prompts
+        base_prompts_ko = {
             "doctor": (
                 "당신은 소아과 상담 AI입니다.\n"
                 "- 영유아 건강 증상/관리 상담 시 의학적 근거를 바탕으로 구체적이고 신중하게 답변합니다.\n"
@@ -39,23 +40,65 @@ class AIService:
             ),
         }
 
+        # English prompts (for non-Korean languages)
+        base_prompts_en = {
+            "doctor": (
+                "You are a pediatric consultation AI.\n"
+                "- Provide specific and careful answers based on medical evidence when consulting on infant/toddler health symptoms and care.\n"
+                "- If emergency symptoms (difficulty breathing, loss of consciousness, persistent high fever, etc.) are suspected, immediately recommend visiting the nearest emergency room.\n"
+                "- Always advise that examinations, treatments, and medications require a medical professional's judgment.\n"
+                "- When possible, provide age, weight, and developmental stage-appropriate recommendations along with precautions."
+            ),
+            "mom": (
+                "You are a parenting assistance AI.\n"
+                "- Answer real-life questions about sleep, development, lifestyle habits, hygiene, and play based on reliable sources.\n"
+                "- Provide practical advice considering developmental stages by age and parents' realistic constraints.\n"
+                "- When necessary, recommend professional consultation (pediatrician, developmental center, etc.)."
+            ),
+            "nutritionist": (
+                "You are an infant/toddler nutrition coach AI.\n"
+                "- Provide meal plans and cooking/storage hygiene guides tailored to age, weight, and developmental stage.\n"
+                "- Clearly advise on food allergies, choking hazard foods, and hygiene management precautions.\n"
+                "- When possible, provide recipes, food alternatives, and daily intake examples."
+            ),
+        }
+
+        # Select prompt based on language
+        if language_code.lower() == "ko":
+            base_prompts = base_prompts_ko
+        else:
+            base_prompts = base_prompts_en
+
         system_prompt = base_prompts.get(ai_mode, base_prompts["mom"])
 
         if kid_context:
-            system_prompt += f"\n\n[아이 정보]\n{kid_context}"
+            if language_code.lower() == "ko":
+                system_prompt += f"\n\n[아이 정보]\n{kid_context}"
+            else:
+                system_prompt += f"\n\n[Child Information]\n{kid_context}"
 
         if rag_context:
-            system_prompt += f"\n\n[참고 근거]\n{rag_context}"
+            if language_code.lower() == "ko":
+                system_prompt += f"\n\n[참고 근거]\n{rag_context}"
+            else:
+                system_prompt += f"\n\n[Reference]\n{rag_context}"
 
         system_prompt += self._build_language_guidelines(language_code)
 
         return system_prompt
 
-    def build_kid_context(self, kid: Kid, db: Session) -> str:
+    def build_kid_context(self, kid: Kid, db: Session, language_code: str = "ko") -> str:
         """Assemble recent kid info for grounding."""
-        context_parts = [f"- 이름: {kid.name}"]
-        context_parts.append(f"- 생년월일: {kid.birth_date}")
-        context_parts.append(f"- 성별: {'남아' if kid.gender == 'male' else '여아'}")
+        is_korean = language_code.lower() == "ko"
+
+        if is_korean:
+            context_parts = [f"- 이름: {kid.name}"]
+            context_parts.append(f"- 생년월일: {kid.birth_date}")
+            context_parts.append(f"- 성별: {'남아' if kid.gender == 'male' else '여아'}")
+        else:
+            context_parts = [f"- Name: {kid.name}"]
+            context_parts.append(f"- Birth date: {kid.birth_date}")
+            context_parts.append(f"- Gender: {'Boy' if kid.gender == 'male' else 'Girl'}")
 
         recent_growth = (
             db.query(GrowthRecord)
@@ -67,9 +110,15 @@ class AIService:
         )
         if recent_growth:
             if recent_growth.height_cm:
-                context_parts.append(f"- 최근 키: {recent_growth.height_cm}cm")
+                if is_korean:
+                    context_parts.append(f"- 최근 키: {recent_growth.height_cm}cm")
+                else:
+                    context_parts.append(f"- Recent height: {recent_growth.height_cm}cm")
             if recent_growth.weight_kg:
-                context_parts.append(f"- 최근 체중: {recent_growth.weight_kg}kg")
+                if is_korean:
+                    context_parts.append(f"- 최근 체중: {recent_growth.weight_kg}kg")
+                else:
+                    context_parts.append(f"- Recent weight: {recent_growth.weight_kg}kg")
 
         recent_health = (
             db.query(HealthRecord)
@@ -86,7 +135,10 @@ class AIService:
                 if health_record.symptom:
                     symptoms.append(health_record.symptom.value)
             if symptoms:
-                context_parts.append(f"- 최근 증상: {', '.join(set(symptoms))}")
+                if is_korean:
+                    context_parts.append(f"- 최근 증상: {', '.join(set(symptoms))}")
+                else:
+                    context_parts.append(f"- Recent symptoms: {', '.join(set(symptoms))}")
 
         recent_sleep = (
             db.query(SleepRecord)
@@ -103,7 +155,10 @@ class AIService:
                 duration = (sleep_record.end_datetime - sleep_record.start_datetime).total_seconds() / 3600
                 total_hours += duration
             avg_sleep = total_hours / len(recent_sleep)
-            context_parts.append(f"- 최근 평균 수면시간: {avg_sleep:.1f}시간")
+            if is_korean:
+                context_parts.append(f"- 최근 평균 수면시간: {avg_sleep:.1f}시간")
+            else:
+                context_parts.append(f"- Recent average sleep: {avg_sleep:.1f} hours")
 
         return "\n".join(context_parts)
 
@@ -160,11 +215,12 @@ class AIService:
         if not self.client:
             return "AI 서비스가 설정되지 않았습니다. 관리자에게 문의해 주세요."
 
+        # Detect language first
+        language_code = self.detect_language(message)
+
         kid_context = None
         if kid and db:
-            kid_context = self.build_kid_context(kid, db)
-
-        language_code = self.detect_language(message)
+            kid_context = self.build_kid_context(kid, db, language_code)
 
         system_prompt = self.get_system_prompt(ai_mode, kid_context, rag_context, language_code)
 
