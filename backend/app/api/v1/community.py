@@ -37,9 +37,9 @@ def get_post_response(post: Post, current_user_id: int, db: Session) -> dict:
         "image_url": post.image_url,
         "created_at": post.created_at,
         "updated_at": post.updated_at,
-        "likes_count": post.likes_count,
+        "likes_count": post.likes_count or 0,
         "author": AuthorResponse.model_validate(post.user) if post.user else None,
-        "comment_count": comment_count,
+        "comment_count": comment_count or 0,
         "is_liked": is_liked,
         "kid_name": kid_name,
         "kid_image_url": kid_image_url,
@@ -78,27 +78,31 @@ def create_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    kid_id = data.kid_id
-    if kid_id is None:
-        kid = db.query(Kid).filter(Kid.user_id == current_user.id).first()
-        if kid:
-            kid_id = kid.id
+    try:
+        kid_id = data.kid_id
+        if kid_id is None:
+            kid = db.query(Kid).filter(Kid.user_id == current_user.id).first()
+            if kid:
+                kid_id = kid.id
 
-    post = Post(
-        user_id=current_user.id,
-        kid_id=kid_id,
-        category=data.category,
-        title=data.title,
-        content=data.content,
-        image_url=data.image_url
-    )
-    db.add(post)
-    db.commit()
-    db.refresh(post)
+        post = Post(
+            user_id=current_user.id,
+            kid_id=kid_id,
+            category=data.category,
+            title=data.title,
+            content=data.content,
+            image_url=data.image_url
+        )
+        db.add(post)
+        db.commit()
+        db.refresh(post)
 
-    # Reload with user
-    post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post.id).first()
-    return get_post_response(post, current_user.id, db)
+        # Reload with user
+        post = db.query(Post).options(joinedload(Post.user)).filter(Post.id == post.id).first()
+        return get_post_response(post, current_user.id, db)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create post: {str(e)}")
 
 
 @router.get("/posts/{post_id}", response_model=PostResponse)

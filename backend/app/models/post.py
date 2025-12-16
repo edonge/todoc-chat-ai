@@ -16,7 +16,7 @@ class Post(Base):
     image_url = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now())
-    likes_count = Column(Integer, default=0)
+    likes_count = Column(Integer, default=0, server_default="0")
 
     user = relationship("User", back_populates="posts")
     kid = relationship("Kid", back_populates="posts")
