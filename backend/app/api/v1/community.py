@@ -57,7 +57,7 @@ def get_posts(
     query = db.query(Post).options(joinedload(Post.user))
 
     if category:
-        query = query.filter(Post.category == category)
+        query = query.filter(Post.category == category.value)
 
     total = query.count()
     posts = query.order_by(Post.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
@@ -88,7 +88,7 @@ def create_post(
         post = Post(
             user_id=current_user.id,
             kid_id=kid_id,
-            category=data.category,
+            category=data.category.value,
             title=data.title,
             content=data.content,
             image_url=data.image_url
@@ -133,7 +133,7 @@ def update_post(
         raise HTTPException(status_code=403, detail="Not authorized to update this post")
 
     if data.category is not None:
-        post.category = data.category
+        post.category = data.category.value
     if data.title is not None:
         post.title = data.title
     if data.content is not None:

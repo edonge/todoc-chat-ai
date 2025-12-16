@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.enums import CommunityCategoryEnum
@@ -10,7 +10,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     kid_id = Column(Integer, ForeignKey("kids.id", ondelete="SET NULL"))
-    category = Column(Enum(CommunityCategoryEnum), nullable=False)
+    category = Column(String(50), nullable=False)
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
     image_url = Column(Text)
