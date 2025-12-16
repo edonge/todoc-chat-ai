@@ -51,7 +51,7 @@ export function useRecords(kidId: number | null) {
       if (filters.limit) params.limit = filters.limit.toString();
 
       const response = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`,
+        `/api/v1/kids/${kidId}/records/`,
         params
       );
       setRecords(response);
@@ -76,7 +76,7 @@ export function useRecords(kidId: number | null) {
       );
       // Refetch records from DB to ensure persistence
       const freshRecords = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`
+        `/api/v1/kids/${kidId}/records/`
       );
       setRecords(freshRecords);
       return response;
@@ -100,7 +100,7 @@ export function useRecords(kidId: number | null) {
       );
       // Refetch records from DB to ensure persistence
       const freshRecords = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`
+        `/api/v1/kids/${kidId}/records/`
       );
       setRecords(freshRecords);
       return response;
@@ -124,7 +124,7 @@ export function useRecords(kidId: number | null) {
       );
       // Refetch records from DB to ensure persistence
       const freshRecords = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`
+        `/api/v1/kids/${kidId}/records/`
       );
       setRecords(freshRecords);
       return response;
@@ -148,7 +148,7 @@ export function useRecords(kidId: number | null) {
       );
       // Refetch records from DB to ensure persistence
       const freshRecords = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`
+        `/api/v1/kids/${kidId}/records/`
       );
       setRecords(freshRecords);
       return response;
@@ -172,7 +172,7 @@ export function useRecords(kidId: number | null) {
       );
       // Refetch records from DB to ensure persistence
       const freshRecords = await apiClient.get<RecordResponse[]>(
-        `/api/v1/kids/${kidId}/records`
+        `/api/v1/kids/${kidId}/records/`
       );
       setRecords(freshRecords);
       return response;
