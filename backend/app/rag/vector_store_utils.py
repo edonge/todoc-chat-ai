@@ -1,13 +1,17 @@
 import pickle
+from functools import lru_cache
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import faiss
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
+from app.core.config import settings
 
+
+# Default fallback if env/config is missing
 OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
 
 
@@ -24,7 +28,8 @@ def _clean_text(text: str) -> str:
 
 
 def _get_openai_embedder() -> OpenAIEmbeddings:
-    return OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
+    model = settings.EMBEDDING_MODEL or OPENAI_EMBEDDING_MODEL
+    return OpenAIEmbeddings(model=model)
 
 
 def load_faiss_store(path: Path) -> FAISS:
@@ -40,6 +45,39 @@ def load_faiss_store(path: Path) -> FAISS:
     # Use OpenAI embeddings for query embedding
     store.embedding_function = _get_openai_embedder()
     return store
+
+
+def _iter_vector_stores(paths: Iterable[Path]) -> List[FAISS]:
+    """Load multiple FAISS stores, ignoring missing/invalid files with a warning."""
+    stores: List[FAISS] = []
+    for path in paths:
+        try:
+            stores.append(load_faiss_store(path))
+        except FileNotFoundError:
+            # Skip silently; caller prepares directories that may be empty.
+            continue
+        except Exception as exc:
+            # Soft-fail on bad files so other stores still load.
+            print(f"[RAG] Failed to load vector store {path}: {exc}")
+            continue
+    return stores
+
+
+@lru_cache(maxsize=32)
+def load_vectorstores_from_dir(dir_path: Path) -> List[FAISS]:
+    """Load every .pkl LangChain FAISS store in a directory (cached)."""
+    if not dir_path.exists() or not dir_path.is_dir():
+        return []
+    paths = sorted(dir_path.glob("*.pkl"))
+    return _iter_vector_stores(paths)
+
+
+def load_vectorstores_from_dirs(dir_paths: Iterable[Path]) -> List[FAISS]:
+    """Aggregate stores from multiple directories (cached per dir)."""
+    stores: List[FAISS] = []
+    for dir_path in dir_paths:
+        stores.extend(load_vectorstores_from_dir(dir_path))
+    return stores
 
 
 def search_vectorstores(
@@ -89,3 +127,16 @@ def search_vectorstores(
         formatted.append(f"- [{source} p{page}:{chunk_id}] (rel {score:.2f}) {snippet}")
 
     return "\n".join(formatted)
+
+
+def search_vector_dirs(
+    query: str,
+    directories: Iterable[Path],
+    top_k: int = 4,
+    score_threshold: float = 0.25,
+) -> str:
+    """Search across all pkl stores inside the given directories."""
+    stores = load_vectorstores_from_dirs(directories)
+    if not stores:
+        return ""
+    return search_vectorstores(query, stores, top_k=top_k, score_threshold=score_threshold)

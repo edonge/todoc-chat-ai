@@ -1,4 +1,3 @@
-import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
@@ -9,10 +8,6 @@ from app.schemas.chat import (
     ChatMessageCreate, ChatMessageResponse
 )
 from app.services.ai_service import ai_service
-from app.rag.retriever import doctor_retriever
-from app.rag.retriever_mom import mom_retriever
-from app.rag.retriever_nutri import nutri_retriever
-from app.rag.retriever_common import common_retriever
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -126,7 +121,7 @@ async def send_message(
     db.refresh(user_message)
 
     # Get AI mode name - map directly from ai_mode_id as fallback
-    ai_mode_map = {1: "doctor", 2: "mom", 3: "nutritionist"}
+    ai_mode_map = {1: "doctor", 2: "mom", 3: "nutrition"}
     ai_mode_name = ai_mode_map.get(data.ai_mode_id, "mom") if data.ai_mode_id else "mom"
 
     # Try to get from DB if available (overrides fallback)
@@ -134,31 +129,8 @@ async def send_message(
         ai_mode = db.query(AIMode).filter(AIMode.id == data.ai_mode_id).first()
         if ai_mode:
             ai_mode_name = ai_mode.name.lower()
-
-    rag_context_parts = []
-    if ai_mode_name == "doctor":
-        try:
-            rag_context_parts.append(await asyncio.to_thread(doctor_retriever.search, data.content))
-        except Exception:
-            pass
-    elif ai_mode_name == "mom":
-        try:
-            rag_context_parts.append(await asyncio.to_thread(mom_retriever.search, data.content))
-        except Exception:
-            pass
-    elif ai_mode_name in ("nutritionist", "nutrient", "nutri"):
-        try:
-            rag_context_parts.append(await asyncio.to_thread(nutri_retriever.search, data.content))
-        except Exception:
-            pass
-
-    # Common retriever for all modes
-    try:
-        rag_context_parts.append(await asyncio.to_thread(common_retriever.search, data.content))
-    except Exception:
-        pass
-
-    rag_context = "\n".join([c for c in rag_context_parts if c])
+            if ai_mode_name in ("nutritionist", "nutrient", "nutri"):
+                ai_mode_name = "nutrition"
 
     # Build conversation history
     conversation_history = [
@@ -173,7 +145,6 @@ async def send_message(
         conversation_history=conversation_history,
         kid=session.kid,
         db=db,
-        rag_context=rag_context
     )
 
     # Save AI response
